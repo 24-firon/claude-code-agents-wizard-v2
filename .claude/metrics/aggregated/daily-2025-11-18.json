@@ -1,0 +1,87 @@
+{
+  "date": "2025-11-18",
+  "schema_version": "1.0.0",
+  "session_count": 2,
+  "sessions": [
+    "session-2025-11-18-001",
+    "session-2025-11-18-002"
+  ],
+  "totals": {
+    "todos_created": 10,
+    "todos_completed": 9,
+    "todos_blocked": 0,
+    "agent_invocations": {
+      "coder": 11,
+      "tester": 10,
+      "stuck": 2
+    },
+    "stuck_invocations": 2,
+    "total_duration_seconds": 7395,
+    "total_tokens_estimated": 240000
+  },
+  "averages": {
+    "todos_per_session": 5.0,
+    "completion_rate": 91.67,
+    "session_duration_seconds": 3697.5,
+    "task_completion_time_seconds": 675,
+    "tokens_per_session": 120000
+  },
+  "success_rates": {
+    "overall_completion_rate": 90.0,
+    "coder_success_rate": 90.91,
+    "tester_success_rate": 90.0,
+    "first_time_success_rate": 81.82
+  },
+  "top_stuck_reasons": [
+    {
+      "reason_category": "test_failure",
+      "count": 1,
+      "percentage": 50.0
+    },
+    {
+      "reason_category": "dependency_issue",
+      "count": 1,
+      "percentage": 50.0
+    }
+  ],
+  "most_active_agent": "coder",
+  "summary": {
+    "total_productive_time_hours": 2.05,
+    "average_session_duration_minutes": 61.63,
+    "tasks_completed_per_hour": 4.39,
+    "sessions_with_zero_stuck": 1,
+    "perfect_session_rate": 50.0
+  },
+  "hourly_distribution": {
+    "10": {
+      "sessions": 1,
+      "todos_completed": 2
+    },
+    "11": {
+      "sessions": 1,
+      "todos_completed": 3
+    },
+    "14": {
+      "sessions": 1,
+      "todos_completed": 3
+    },
+    "15": {
+      "sessions": 1,
+      "todos_completed": 1
+    }
+  },
+  "workspace_summary": [
+    {
+      "workspace_name": "react-todo-app",
+      "sessions": 1,
+      "todos_completed": 5,
+      "completion_rate": 83.33
+    },
+    {
+      "workspace_name": "express-api-server",
+      "sessions": 1,
+      "todos_completed": 4,
+      "completion_rate": 100.0
+    }
+  ]
+}

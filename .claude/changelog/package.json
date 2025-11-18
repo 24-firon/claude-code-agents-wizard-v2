@@ -1,0 +1,45 @@
+{
+  "name": "@claude/changelog-generator",
+  "version": "1.0.0",
+  "description": "Intelligent automated changelog generator with conventional commits support",
+  "main": "generator.js",
+  "bin": {
+    "changelog": "./cli.js"
+  },
+  "scripts": {
+    "generate": "node cli.js generate",
+    "preview": "node cli.js preview",
+    "validate": "node cli.js validate",
+    "bump": "node cli.js bump",
+    "release": "node cli.js release",
+    "test": "node tests/run-tests.js"
+  },
+  "keywords": [
+    "changelog",
+    "conventional-commits",
+    "semantic-versioning",
+    "git",
+    "release-notes",
+    "automation"
+  ],
+  "author": "Claude Code Agents",
+  "license": "MIT",
+  "dependencies": {
+    "handlebars": "^4.7.8",
+    "commander": "^11.1.0",
+    "conventional-commits-parser": "^5.0.0",
+    "semver": "^7.5.4",
+    "@octokit/rest": "^20.0.2",
+    "chalk": "^4.1.2",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1",
+    "marked": "^11.1.0",
+    "marked-terminal": "^6.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

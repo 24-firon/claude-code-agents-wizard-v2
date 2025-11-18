@@ -1,0 +1,46 @@
+{
+  "name": "@claude/agent-benchmarks",
+  "version": "1.0.0",
+  "description": "Production-grade performance benchmarking suite for Claude Code agent comparisons",
+  "main": "runner.js",
+  "bin": {
+    "benchmark": "./cli.js"
+  },
+  "scripts": {
+    "bench": "node cli.js run",
+    "bench:all": "node cli.js run --all",
+    "bench:coder": "node cli.js run benchmarks/coder-agent.bench.js",
+    "bench:tester": "node cli.js run benchmarks/tester-agent.bench.js",
+    "bench:compare": "node compare.js",
+    "bench:baseline": "node baseline.js save",
+    "bench:ci": "node cli.js run --ci --compare-baseline",
+    "report": "node cli.js report",
+    "test": "node --test"
+  },
+  "keywords": [
+    "benchmark",
+    "performance",
+    "agents",
+    "testing",
+    "metrics"
+  ],
+  "author": "Claude Code Team",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "cli-progress": "^3.12.0",
+    "cli-table3": "^0.6.3",
+    "commander": "^11.1.0",
+    "performance-now": "^2.1.0",
+    "pidusage": "^3.0.2",
+    "systeminformation": "^5.21.20"
+  },
+  "devDependencies": {
+    "chart.js": "^4.4.0",
+    "chartjs-node-canvas": "^4.1.6",
+    "jspdf": "^2.5.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

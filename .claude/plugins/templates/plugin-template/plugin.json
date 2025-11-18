@@ -1,0 +1,46 @@
+{
+  "name": "plugin-name",
+  "version": "1.0.0",
+  "description": "A brief description of what this plugin does",
+  "author": "Your Name",
+  "license": "MIT",
+  "homepage": "https://github.com/yourusername/plugin-name",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/plugin-name.git"
+  },
+  "main": "index.js",
+  "agents": [],
+  "tools": [],
+  "hooks": {},
+  "permissions": [
+    "events:emit",
+    "events:subscribe",
+    "config:read"
+  ],
+  "dependencies": {
+    "plugins": {},
+    "npm": {}
+  },
+  "config": {
+    "exampleSetting": "default-value"
+  },
+  "configSchema": "config.schema.json",
+  "enabled": true,
+  "autoload": true,
+  "priority": 0,
+  "tags": ["category1", "category2"],
+  "keywords": ["keyword1", "keyword2"],
+  "compatibility": {
+    "agentFramework": ">=1.0.0",
+    "node": ">=18.0.0",
+    "platform": ["darwin", "linux", "win32"]
+  },
+  "resources": {
+    "maxMemory": 512,
+    "maxCpu": 50,
+    "timeout": 30000
+  },
+  "documentation": "README.md",
+  "changelog": "CHANGELOG.md"
+}

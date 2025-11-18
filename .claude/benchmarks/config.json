@@ -1,0 +1,57 @@
+{
+  "iterations": 10,
+  "warmupRounds": 3,
+  "timeout": 300000,
+  "parallel": false,
+  "performanceBudgets": {
+    "coder": {
+      "simpleComponent": 5000,
+      "complexRefactor": 30000,
+      "multiFile": 15000
+    },
+    "tester": {
+      "playwrightStartup": 3000,
+      "screenshot": 1000,
+      "formInteraction": 2000
+    },
+    "orchestration": {
+      "todoDelegation": 100,
+      "contextSwitch": 500
+    },
+    "persistence": {
+      "todoWrite": 50,
+      "todoRead": 20,
+      "metricsQuery": 100
+    }
+  },
+  "reporters": {
+    "console": {
+      "enabled": true,
+      "colors": true,
+      "showProgress": true
+    },
+    "json": {
+      "enabled": true,
+      "outputPath": "./results/benchmark-results.json"
+    },
+    "html": {
+      "enabled": true,
+      "outputPath": "./results/benchmark-report.html",
+      "includeCharts": true
+    }
+  },
+  "baseline": {
+    "path": "./baseline/baseline.json",
+    "autoUpdate": false
+  },
+  "ci": {
+    "failOnRegression": true,
+    "regressionThreshold": 0.1,
+    "exitCode": 1
+  },
+  "system": {
+    "collectCpuUsage": true,
+    "collectMemoryUsage": true,
+    "collectSystemInfo": true
+  }
+}

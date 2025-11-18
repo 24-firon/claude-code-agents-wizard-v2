@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Slack Notifier Plugin Configuration",
+  "type": "object",
+  "properties": {
+    "webhookUrl": {
+      "type": "string",
+      "description": "Slack webhook URL (get from Slack App settings)",
+      "format": "uri",
+      "pattern": "^https://hooks\\.slack\\.com/services/"
+    },
+    "channel": {
+      "type": "string",
+      "description": "Default Slack channel to post to",
+      "pattern": "^#[a-z0-9-_]+$",
+      "default": "#general"
+    },
+    "username": {
+      "type": "string",
+      "description": "Bot username to display in Slack",
+      "minLength": 1,
+      "maxLength": 80,
+      "default": "Claude Code Bot"
+    },
+    "iconEmoji": {
+      "type": "string",
+      "description": "Emoji to use as bot icon",
+      "pattern": "^:[a-z0-9_+-]+:$",
+      "default": ":robot_face:"
+    },
+    "notifyOnSuccess": {
+      "type": "boolean",
+      "description": "Send notifications when agents complete successfully",
+      "default": true
+    },
+    "notifyOnError": {
+      "type": "boolean",
+      "description": "Send notifications when agents fail",
+      "default": true
+    },
+    "mentionOnError": {
+      "type": "string",
+      "description": "User or group to mention on errors (e.g., @channel, @user)",
+      "pattern": "^@[a-z0-9_-]+$"
+    },
+    "minNotificationLevel": {
+      "type": "string",
+      "description": "Minimum log level for notifications",
+      "enum": ["debug", "info", "warn", "error"],
+      "default": "info"
+    },
+    "rateLimitMs": {
+      "type": "number",
+      "description": "Minimum milliseconds between notifications (rate limiting)",
+      "minimum": 0,
+      "maximum": 60000,
+      "default": 1000
+    },
+    "maxRetries": {
+      "type": "number",
+      "description": "Maximum retries for failed webhook calls",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 3
+    }
+  },
+  "required": ["webhookUrl"]
+}

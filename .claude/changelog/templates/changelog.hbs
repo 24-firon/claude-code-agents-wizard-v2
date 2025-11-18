@@ -1,0 +1,58 @@
+## [{{version}}]({{compareUrl}}) ({{formatDate date}})
+
+{{#if breakingChanges.length}}
+### ⚠️ BREAKING CHANGES
+
+{{#each breakingChanges}}
+* **{{#if parsed.scope}}{{parsed.scope}}: {{/if}}**{{breakingChange}}
+  {{#if issues.length}}(fixes {{#each issues}}[#{{this}}]({{issueLink this}}){{#unless @last}}, {{/unless}}{{/each}}){{/if}}
+  ([{{shortHash}}]({{commitLink hash}}))
+{{/each}}
+
+{{/if}}
+{{#each categoryOrder}}
+{{#if (lookup ../categorized this)}}
+### {{#if config.template.includeEmojis}}{{lookup (lookup ../config.commitTypes this) 'emoji'}} {{/if}}{{lookup (lookup ../config.commitTypes this) 'label'}}
+
+{{#each (lookup ../categorized this)}}
+* {{#if parsed.scope}}**{{parsed.scope}}:** {{/if}}{{parsed.subject}}
+  {{~#if issues.length}} ({{#each issues}}[#{{this}}]({{../issueLink this}}){{#unless @last}}, {{/unless}}{{/each}}){{/if}}
+  {{~#if prs.length}} ({{#each prs}}[PR #{{this}}]({{../prLink this}}){{#unless @last}}, {{/unless}}{{/each}}){{/if}}
+  {{~#if config.template.showCommitHash}} ([{{shortHash}}]({{commitLink hash}})){{/if}}
+  {{~#if config.template.showAuthor}} - {{author.name}}{{/if}}
+{{#if coAuthors.length}}
+  Co-authored by: {{#each coAuthors}}{{name}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+{{/each}}
+
+{{/if}}
+{{/each}}
+{{#if analytics}}
+---
+
+### 📊 Statistics
+
+* **Total Commits**: {{analytics.overview.totalCommits}}
+* **Contributors**: {{analytics.overview.totalContributors}}
+{{#if analytics.overview.breakingChanges}}
+* **Breaking Changes**: {{analytics.overview.breakingChanges}}
+{{/if}}
+* **Quality Score**: {{analytics.overview.qualityScore}}/100
+
+{{#if analytics.topContributors.length}}
+#### Top Contributors
+
+{{#each analytics.topContributors}}
+{{@index}}. **{{name}}** - {{commits}} commits
+{{/each}}
+{{/if}}
+
+{{#if analytics.typeDistribution}}
+#### Commit Type Distribution
+
+{{#each analytics.typeDistribution}}
+* {{emoji}} {{label}}: {{count}} ({{percentage}}%)
+{{/each}}
+{{/if}}
+
+{{/if}}

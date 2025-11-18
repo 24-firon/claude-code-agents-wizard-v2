@@ -1,0 +1,299 @@
+{
+  "version": "1.0.0",
+  "updated": "2025-11-18T00:00:00.000Z",
+  "plugins": [
+    {
+      "name": "hello-world-plugin",
+      "version": "1.0.0",
+      "description": "A simple example plugin demonstrating the basics",
+      "author": "Claude Code Team",
+      "license": "MIT",
+      "homepage": "https://github.com/claude-code/hello-world-plugin",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/claude-code/hello-world-plugin.git"
+      },
+      "category": "examples",
+      "tags": ["example", "tutorial", "getting-started"],
+      "keywords": ["hello", "world", "example", "demo"],
+      "rating": 5.0,
+      "downloads": 1000,
+      "verified": true,
+      "featured": true,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/claude-code/hello-world-plugin/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "jira-integration-plugin",
+      "version": "1.0.0",
+      "description": "Integration with Jira for ticket management and synchronization",
+      "author": "Claude Code Team",
+      "license": "MIT",
+      "homepage": "https://github.com/claude-code/jira-integration-plugin",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/claude-code/jira-integration-plugin.git"
+      },
+      "category": "integrations",
+      "tags": ["integration", "jira", "project-management"],
+      "keywords": ["jira", "atlassian", "tickets", "sync", "integration"],
+      "rating": 4.8,
+      "downloads": 750,
+      "verified": true,
+      "featured": true,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/claude-code/jira-integration-plugin/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "slack-notifier-plugin",
+      "version": "1.0.0",
+      "description": "Send notifications to Slack channels via webhooks",
+      "author": "Claude Code Team",
+      "license": "MIT",
+      "homepage": "https://github.com/claude-code/slack-notifier-plugin",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/claude-code/slack-notifier-plugin.git"
+      },
+      "category": "notifications",
+      "tags": ["notifications", "slack", "messaging"],
+      "keywords": ["slack", "notification", "webhook", "alerts"],
+      "rating": 4.9,
+      "downloads": 850,
+      "verified": true,
+      "featured": true,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/claude-code/slack-notifier-plugin/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "git-analyzer-plugin",
+      "version": "1.0.0",
+      "description": "Analyze Git repositories for insights, metrics, and code quality",
+      "author": "Claude Code Team",
+      "license": "MIT",
+      "homepage": "https://github.com/claude-code/git-analyzer-plugin",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/claude-code/git-analyzer-plugin.git"
+      },
+      "category": "analytics",
+      "tags": ["git", "analytics", "code-quality", "metrics"],
+      "keywords": ["git", "analytics", "insights", "metrics", "repository"],
+      "rating": 4.7,
+      "downloads": 600,
+      "verified": true,
+      "featured": false,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/claude-code/git-analyzer-plugin/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "docker-deployment-plugin",
+      "version": "1.2.0",
+      "description": "Automated Docker deployment and container management",
+      "author": "Community Contributor",
+      "license": "MIT",
+      "homepage": "https://github.com/example/docker-deployment-plugin",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/example/docker-deployment-plugin.git"
+      },
+      "category": "deployment",
+      "tags": ["docker", "deployment", "containers", "devops"],
+      "keywords": ["docker", "container", "deployment", "devops"],
+      "rating": 4.6,
+      "downloads": 450,
+      "verified": true,
+      "featured": false,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0",
+        "platform": ["darwin", "linux"]
+      },
+      "installUrl": "https://github.com/example/docker-deployment-plugin/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "code-review-assistant",
+      "version": "2.0.1",
+      "description": "AI-powered code review assistant for pull requests",
+      "author": "Community Contributor",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/example/code-review-assistant",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/example/code-review-assistant.git"
+      },
+      "category": "code-quality",
+      "tags": ["code-review", "ai", "quality", "pull-request"],
+      "keywords": ["review", "pr", "quality", "assistant"],
+      "rating": 4.9,
+      "downloads": 1200,
+      "verified": true,
+      "featured": true,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/example/code-review-assistant/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "database-migrator",
+      "version": "1.5.3",
+      "description": "Database schema migration and version control",
+      "author": "Community Contributor",
+      "license": "MIT",
+      "homepage": "https://github.com/example/database-migrator",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/example/database-migrator.git"
+      },
+      "category": "database",
+      "tags": ["database", "migration", "schema", "sql"],
+      "keywords": ["database", "migration", "schema", "versioning"],
+      "rating": 4.5,
+      "downloads": 550,
+      "verified": false,
+      "featured": false,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/example/database-migrator/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "test-coverage-reporter",
+      "version": "1.1.0",
+      "description": "Generate and track test coverage reports",
+      "author": "Community Contributor",
+      "license": "MIT",
+      "homepage": "https://github.com/example/test-coverage-reporter",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/example/test-coverage-reporter.git"
+      },
+      "category": "testing",
+      "tags": ["testing", "coverage", "quality", "reporting"],
+      "keywords": ["test", "coverage", "report", "quality"],
+      "rating": 4.4,
+      "downloads": 400,
+      "verified": true,
+      "featured": false,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/example/test-coverage-reporter/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "api-documentation-generator",
+      "version": "3.0.0",
+      "description": "Automatically generate API documentation from code",
+      "author": "Community Contributor",
+      "license": "MIT",
+      "homepage": "https://github.com/example/api-documentation-generator",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/example/api-documentation-generator.git"
+      },
+      "category": "documentation",
+      "tags": ["documentation", "api", "openapi", "swagger"],
+      "keywords": ["documentation", "api", "openapi", "swagger", "generator"],
+      "rating": 4.7,
+      "downloads": 800,
+      "verified": true,
+      "featured": true,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/example/api-documentation-generator/archive/refs/heads/main.zip"
+    },
+    {
+      "name": "security-scanner",
+      "version": "2.1.0",
+      "description": "Scan code for security vulnerabilities and best practices",
+      "author": "Security Team",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/example/security-scanner",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/example/security-scanner.git"
+      },
+      "category": "security",
+      "tags": ["security", "scanning", "vulnerabilities", "safety"],
+      "keywords": ["security", "scan", "vulnerability", "safety"],
+      "rating": 4.8,
+      "downloads": 950,
+      "verified": true,
+      "featured": true,
+      "compatibility": {
+        "agentFramework": ">=1.0.0",
+        "node": ">=18.0.0"
+      },
+      "installUrl": "https://github.com/example/security-scanner/archive/refs/heads/main.zip"
+    }
+  ],
+  "categories": [
+    {
+      "id": "examples",
+      "name": "Examples",
+      "description": "Example plugins for learning and reference"
+    },
+    {
+      "id": "integrations",
+      "name": "Integrations",
+      "description": "Integrate with external services and tools"
+    },
+    {
+      "id": "notifications",
+      "name": "Notifications",
+      "description": "Send notifications and alerts"
+    },
+    {
+      "id": "analytics",
+      "name": "Analytics",
+      "description": "Analyze code, metrics, and insights"
+    },
+    {
+      "id": "deployment",
+      "name": "Deployment",
+      "description": "Deployment and infrastructure tools"
+    },
+    {
+      "id": "code-quality",
+      "name": "Code Quality",
+      "description": "Code quality and review tools"
+    },
+    {
+      "id": "database",
+      "name": "Database",
+      "description": "Database management and tools"
+    },
+    {
+      "id": "testing",
+      "name": "Testing",
+      "description": "Testing and quality assurance"
+    },
+    {
+      "id": "documentation",
+      "name": "Documentation",
+      "description": "Documentation generation and tools"
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "description": "Security scanning and tools"
+    }
+  ]
+}

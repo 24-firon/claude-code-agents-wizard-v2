@@ -1,0 +1,84 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm run build",
+    "watchPatterns": [
+      "src/**",
+      "public/**",
+      "package.json"
+    ]
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production",
+        "PORT": "3000"
+      }
+    },
+    "staging": {
+      "variables": {
+        "NODE_ENV": "staging",
+        "PORT": "3000"
+      }
+    }
+  },
+  "regions": [
+    "us-west-1"
+  ],
+  "services": [
+    {
+      "name": "app",
+      "icon": "🚀",
+      "serviceType": "web",
+      "source": {
+        "type": "repo",
+        "repo": "username/repository"
+      },
+      "build": {
+        "builder": "NIXPACKS"
+      },
+      "healthcheck": {
+        "path": "/health",
+        "interval": 30,
+        "timeout": 10
+      },
+      "variables": {
+        "NODE_ENV": "production",
+        "PORT": "3000"
+      }
+    },
+    {
+      "name": "postgres",
+      "icon": "🐘",
+      "serviceType": "database",
+      "databaseType": "postgresql",
+      "variables": {
+        "POSTGRES_DB": "appdb",
+        "POSTGRES_USER": "${{POSTGRES_USER}}",
+        "POSTGRES_PASSWORD": "${{POSTGRES_PASSWORD}}"
+      }
+    },
+    {
+      "name": "redis",
+      "icon": "📦",
+      "serviceType": "database",
+      "databaseType": "redis"
+    }
+  ],
+  "networking": {
+    "serviceDomains": [
+      {
+        "service": "app",
+        "domain": "myapp.up.railway.app"
+      }
+    ]
+  }
+}

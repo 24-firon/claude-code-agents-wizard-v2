@@ -1,0 +1,58 @@
+{
+  "name": "claude-code-agents-integration-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive integration test suite for Claude Code Agents Wizard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "cross-env NODE_ENV=test jest",
+    "test:watch": "cross-env NODE_ENV=test jest --watch",
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage",
+    "test:verbose": "cross-env NODE_ENV=test jest --verbose",
+    "test:agents": "cross-env NODE_ENV=test jest --testPathPattern=test-.*-agent",
+    "test:e2e": "cross-env NODE_ENV=test jest --testPathPattern=e2e",
+    "test:orchestration": "cross-env NODE_ENV=test jest --testPathPattern=orchestration",
+    "test:ci": "cross-env NODE_ENV=test jest --ci --coverage --maxWorkers=2"
+  },
+  "keywords": [
+    "claude-code",
+    "agents",
+    "testing",
+    "integration-tests"
+  ],
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@playwright/test": "^1.40.1",
+    "cross-env": "^7.0.3",
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
+    "nock": "^13.4.0",
+    "supertest": "^6.3.3",
+    "tmp": "^0.2.1",
+    "tmp-promise": "^3.0.3",
+    "mock-fs": "^5.2.0",
+    "memfs": "^4.6.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/setup.js"
+    ],
+    "testMatch": [
+      "**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "../../.claude/**/*.js",
+      "!**/node_modules/**",
+      "!**/coverage/**"
+    ],
+    "coverageDirectory": "./coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "testTimeout": 30000,
+    "verbose": true
+  }
+}

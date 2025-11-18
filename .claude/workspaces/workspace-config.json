@@ -1,0 +1,106 @@
+{
+  "$schema": "https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2/schema/workspace-config",
+  "version": "1.0.0",
+  "created": "2025-11-18T22:00:00.000Z",
+  "lastModified": "2025-11-18T22:00:00.000Z",
+  "defaultWorkspace": "default-project",
+  "workspaces": [
+    {
+      "name": "default-project",
+      "path": "default-project",
+      "description": "Default workspace for general development",
+      "created": "2025-11-18T22:00:00.000Z",
+      "active": true
+    },
+    {
+      "name": "project-a",
+      "path": "project-a",
+      "description": "Full-stack web application with React and Node.js",
+      "created": "2025-11-18T22:00:00.000Z",
+      "active": true
+    },
+    {
+      "name": "project-b",
+      "path": "project-b",
+      "description": "Mobile application with React Native",
+      "created": "2025-11-18T22:00:00.000Z",
+      "active": true
+    }
+  ],
+  "globalPreferences": {
+    "defaultModel": "claude-sonnet-4-5-20250929",
+    "maxContextWindow": 200000,
+    "enableAutoSave": true,
+    "autoSaveIntervalSeconds": 60,
+    "enableWorkspaceHistory": true,
+    "maxHistoryEntries": 1000,
+    "enableCrossWorkspaceSearch": false,
+    "theme": "auto"
+  },
+  "agentDefaults": {
+    "coder": {
+      "timeout": 300,
+      "retryAttempts": 1,
+      "enableLogging": true
+    },
+    "tester": {
+      "timeout": 180,
+      "retryAttempts": 2,
+      "enableLogging": true,
+      "defaultBrowser": "chromium",
+      "headless": true,
+      "screenshotOnFailure": true
+    },
+    "stuck": {
+      "timeout": 600,
+      "enableLogging": true,
+      "autoEscalate": true
+    },
+    "researcher": {
+      "timeout": 240,
+      "retryAttempts": 2,
+      "enableLogging": true,
+      "maxSearchResults": 10
+    },
+    "security-auditor": {
+      "timeout": 300,
+      "retryAttempts": 1,
+      "enableLogging": true,
+      "strictMode": true
+    },
+    "performance-optimizer": {
+      "timeout": 300,
+      "retryAttempts": 1,
+      "enableLogging": true,
+      "benchmarkThreshold": 0.8
+    }
+  },
+  "persistence": {
+    "basePath": ".claude/persistence",
+    "schemaPath": ".claude/persistence/schema.json",
+    "enableBackups": true,
+    "backupIntervalHours": 24,
+    "maxBackups": 7,
+    "compressionEnabled": true
+  },
+  "features": {
+    "enableWorkspaceTemplates": true,
+    "enableWorkspaceImportExport": true,
+    "enableCrossWorkspaceAnalytics": false,
+    "enableAutoWorkspaceSwitching": false,
+    "enableWorkspaceArchiving": true,
+    "enableWorkspaceLinking": false
+  },
+  "notifications": {
+    "enableDesktopNotifications": false,
+    "notifyOnTodoComplete": true,
+    "notifyOnWorkspaceSwitch": true,
+    "notifyOnAgentError": true
+  },
+  "security": {
+    "requireWorkspaceConfirmation": false,
+    "enableWorkspaceEncryption": false,
+    "auditLogEnabled": true,
+    "auditLogPath": ".claude/audit.log"
+  }
+}

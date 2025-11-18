@@ -1,0 +1,28 @@
+{
+  "todos": [
+    {
+      "id": 1,
+      "title": "Create index.html",
+      "description": "Create the main HTML file with basic structure",
+      "status": "pending",
+      "priority": "high",
+      "created": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "title": "Add CSS styling",
+      "description": "Create styles.css and add responsive styling",
+      "status": "pending",
+      "priority": "medium",
+      "created": "2024-01-15T10:05:00Z"
+    },
+    {
+      "id": 3,
+      "title": "Add JavaScript interactivity",
+      "description": "Create script.js for interactive elements",
+      "status": "pending",
+      "priority": "low",
+      "created": "2024-01-15T10:10:00Z"
+    }
+  ]
+}

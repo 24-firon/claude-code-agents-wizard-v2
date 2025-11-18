@@ -1,0 +1,217 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2/schema/persistence",
+  "title": "Claude Code Agent Persistence Schema",
+  "description": "Schema for todo items and project metadata in the orchestration system",
+  "definitions": {
+    "todo": {
+      "type": "object",
+      "description": "A single todo item in the orchestration system",
+      "required": ["id", "content", "status", "timestamp", "createdAt"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier (UUID v4)",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "content": {
+          "type": "string",
+          "description": "Description of the todo item",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the todo",
+          "enum": ["pending", "in-progress", "completed", "blocked"]
+        },
+        "activeForm": {
+          "type": "boolean",
+          "description": "Whether this todo's form is currently active in the UI",
+          "default": false
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Last modified timestamp in ISO 8601 format",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp in ISO 8601 format",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": ["string", "null"],
+          "description": "Completion timestamp in ISO 8601 format, null if not completed",
+          "format": "date-time"
+        },
+        "assignedTo": {
+          "type": ["string", "null"],
+          "description": "Which subagent is assigned to this todo",
+          "enum": ["coder", "tester", "stuck", "researcher", "security-auditor", "performance-optimizer", null]
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority level of the todo",
+          "enum": ["low", "normal", "high", "critical"],
+          "default": "normal"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags for categorization and filtering",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "IDs of todos that must be completed before this one",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes or context for the todo",
+          "maxLength": 10000
+        },
+        "estimatedMinutes": {
+          "type": ["integer", "null"],
+          "description": "Estimated time to complete in minutes",
+          "minimum": 0
+        },
+        "actualMinutes": {
+          "type": ["integer", "null"],
+          "description": "Actual time taken to complete in minutes",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Project metadata",
+      "required": ["name", "created", "lastModified"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Project identifier (alphanumeric, hyphens, underscores)",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable project description",
+          "maxLength": 1000
+        },
+        "created": {
+          "type": "string",
+          "description": "Project creation timestamp in ISO 8601 format",
+          "format": "date-time"
+        },
+        "lastModified": {
+          "type": "string",
+          "description": "Last modification timestamp in ISO 8601 format",
+          "format": "date-time"
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version for schema compatibility",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "default": "1.0.0"
+        },
+        "settings": {
+          "type": "object",
+          "description": "Project-specific settings",
+          "properties": {
+            "autoArchive": {
+              "type": "boolean",
+              "description": "Automatically archive completed todos after N days",
+              "default": false
+            },
+            "maxCompletedTodos": {
+              "type": "integer",
+              "description": "Maximum number of completed todos to keep before archiving",
+              "minimum": 0,
+              "default": 100
+            },
+            "archiveAfterDays": {
+              "type": "integer",
+              "description": "Number of days after completion to archive todos",
+              "minimum": 1,
+              "default": 30
+            },
+            "defaultPriority": {
+              "type": "string",
+              "description": "Default priority for new todos",
+              "enum": ["low", "normal", "high", "critical"],
+              "default": "normal"
+            },
+            "requireAssignment": {
+              "type": "boolean",
+              "description": "Require todos to be assigned to a subagent",
+              "default": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "stats": {
+          "type": "object",
+          "description": "Project statistics (auto-calculated)",
+          "properties": {
+            "totalTodos": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completedTodos": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pendingTodos": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "inProgressTodos": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "blockedTodos": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "todosFile": {
+      "type": "array",
+      "description": "Array of todo items",
+      "items": {
+        "$ref": "#/definitions/todo"
+      },
+      "uniqueItems": true
+    }
+  },
+  "oneOf": [
+    {
+      "title": "Todos Array",
+      "description": "Schema for todos.json files",
+      "$ref": "#/definitions/todosFile"
+    },
+    {
+      "title": "Project Metadata",
+      "description": "Schema for metadata.json files",
+      "$ref": "#/definitions/metadata"
+    }
+  ]
+}

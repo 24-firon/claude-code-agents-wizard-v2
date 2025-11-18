@@ -1,0 +1,76 @@
+{
+  "coderSuccess": {
+    "agent": "coder",
+    "status": "completed",
+    "timestamp": "2024-01-15T10:00:00Z",
+    "result": {
+      "filesCreated": ["index.html", "styles.css"],
+      "filesModified": [],
+      "summary": "Created 2 files, modified 0 files"
+    }
+  },
+  "coderError": {
+    "agent": "coder",
+    "status": "error",
+    "timestamp": "2024-01-15T10:05:00Z",
+    "error": {
+      "message": "Permission denied",
+      "escalated": true,
+      "escalatedTo": "stuck"
+    }
+  },
+  "testerSuccess": {
+    "agent": "tester",
+    "status": "completed",
+    "timestamp": "2024-01-15T10:10:00Z",
+    "result": {
+      "allPassed": true,
+      "testsPassed": ["Page loads", "Button exists", "Styles applied"],
+      "testsFailed": [],
+      "screenshots": ["test-1.png", "test-2.png"],
+      "summary": "All 3 tests passed"
+    }
+  },
+  "testerFailure": {
+    "agent": "tester",
+    "status": "completed",
+    "timestamp": "2024-01-15T10:15:00Z",
+    "result": {
+      "allPassed": false,
+      "testsPassed": ["Page loads"],
+      "testsFailed": [
+        {
+          "test": "Button exists",
+          "error": "Element not found: #test-button"
+        }
+      ],
+      "screenshots": ["failure.png"],
+      "summary": "1 test failed",
+      "escalated": true,
+      "escalatedTo": "stuck"
+    }
+  },
+  "stuckEscalation": {
+    "agent": "stuck",
+    "status": "waiting",
+    "timestamp": "2024-01-15T10:20:00Z",
+    "escalation": {
+      "problem": "Test failed: Button not found",
+      "options": [
+        "Add button to HTML",
+        "Update test selector",
+        "Skip this test"
+      ],
+      "context": "Test suite execution"
+    }
+  },
+  "stuckResolution": {
+    "agent": "stuck",
+    "status": "resolved",
+    "timestamp": "2024-01-15T10:25:00Z",
+    "resolution": {
+      "decision": "Add button to HTML",
+      "source": "human"
+    }
+  }
+}

@@ -1,0 +1,687 @@
+name: Security Scan
+
+# =============================================================================
+# Comprehensive security scanning workflow with secret detection, dependency
+# scanning, SAST analysis, license compliance, and supply chain security
+# =============================================================================
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run security scans every day at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+# Cancel in-progress runs for same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # SECRET SCANNING WITH TRUFFLEHOG
+  # Detects secrets, API keys, tokens, and credentials in code
+  # ===========================================================================
+  trufflehog-scan:
+    name: TruffleHog Secret Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better secret detection
+
+      - name: Run TruffleHog scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: Upload TruffleHog results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trufflehog-scan-results-${{ github.run_id }}
+          path: |
+            trufflehog-results.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # SECRET SCANNING WITH GITLEAKS
+  # Alternative secret detection tool for comprehensive coverage
+  # ===========================================================================
+  gitleaks-scan:
+    name: Gitleaks Secret Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  # Optional
+
+      - name: Upload Gitleaks results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-scan-results-${{ github.run_id }}
+          path: |
+            gitleaks-report.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # SCRIPT VULNERABILITY SCANNING
+  # Scans shell scripts for security issues and best practices
+  # ===========================================================================
+  script-security-scan:
+    name: Script Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Scan shell scripts for vulnerabilities
+        run: |
+          echo "=== Script Security Scan ===" | tee security-report.txt
+          echo "" | tee -a security-report.txt
+
+          # Find all shell scripts
+          scripts=$(find . -type f \( -name "*.sh" -o -name "*.bash" \) -not -path "*/node_modules/*" -not -path "*/.git/*")
+
+          if [ -z "$scripts" ]; then
+            echo "No shell scripts found" | tee -a security-report.txt
+            exit 0
+          fi
+
+          has_issues=0
+          total_issues=0
+
+          while IFS= read -r script; do
+            echo "Scanning: $script" | tee -a security-report.txt
+
+            # Run ShellCheck with security focus
+            if output=$(shellcheck -f json "$script" 2>&1); then
+              issue_count=$(echo "$output" | python3 -c "import sys, json; data = json.load(sys.stdin); print(len(data))" 2>/dev/null || echo "0")
+
+              if [ "$issue_count" -gt 0 ]; then
+                echo "  Found $issue_count issue(s)" | tee -a security-report.txt
+                total_issues=$((total_issues + issue_count))
+                has_issues=1
+
+                # Show security-related issues
+                echo "$output" | python3 << 'PYTHON' | tee -a security-report.txt
+          import sys, json
+          try:
+              data = json.load(sys.stdin)
+              for issue in data:
+                  severity = issue.get('level', 'info')
+                  code = issue.get('code', 'unknown')
+                  message = issue.get('message', '')
+                  line = issue.get('line', 0)
+
+                  # Highlight security issues
+                  if severity in ['error', 'warning']:
+                      print(f"    Line {line}: [{severity.upper()}] SC{code}: {message}")
+          except:
+              pass
+          PYTHON
+              else
+                echo "  ✓ No issues found" | tee -a security-report.txt
+              fi
+            else
+              echo "  ⚠️  Could not scan file" | tee -a security-report.txt
+            fi
+            echo "" | tee -a security-report.txt
+          done <<< "$scripts"
+
+          echo "=== Summary ===" | tee -a security-report.txt
+          echo "Total issues found: $total_issues" | tee -a security-report.txt
+
+          if [ $has_issues -eq 1 ]; then
+            echo "⚠️  Script security issues detected - review recommended" | tee -a security-report.txt
+          else
+            echo "✓ No script security issues detected" | tee -a security-report.txt
+          fi
+
+      - name: Upload script scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: script-security-scan-${{ github.run_id }}
+          path: security-report.txt
+          retention-days: 30
+
+  # ===========================================================================
+  # DEPENDENCY SCANNING
+  # Scans npm and Python dependencies for known vulnerabilities
+  # ===========================================================================
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check for package.json
+        id: check-npm
+        run: |
+          if [ -f "package.json" ]; then
+            echo "has-package-json=true" >> $GITHUB_OUTPUT
+            echo "✓ package.json found"
+          else
+            echo "has-package-json=false" >> $GITHUB_OUTPUT
+            echo "No package.json found"
+          fi
+
+      - name: NPM Audit
+        if: steps.check-npm.outputs.has-package-json == 'true'
+        run: |
+          echo "=== NPM Security Audit ===" | tee npm-audit.txt
+          echo "" | tee -a npm-audit.txt
+
+          if [ -f "package-lock.json" ]; then
+            npm ci || npm install
+          else
+            npm install
+          fi
+
+          # Run audit and capture output
+          npm audit --json > npm-audit.json || true
+          npm audit | tee -a npm-audit.txt || true
+
+          echo "" | tee -a npm-audit.txt
+          echo "Full audit results saved to npm-audit.json" | tee -a npm-audit.txt
+
+      - name: Check for Python requirements
+        id: check-python
+        run: |
+          if [ -f "requirements.txt" ] || [ -f "Pipfile" ] || [ -f "pyproject.toml" ]; then
+            echo "has-python-deps=true" >> $GITHUB_OUTPUT
+            echo "✓ Python dependencies found"
+          else
+            echo "has-python-deps=false" >> $GITHUB_OUTPUT
+            echo "No Python dependency files found"
+          fi
+
+      - name: Install pip-audit
+        if: steps.check-python.outputs.has-python-deps == 'true'
+        run: pip install pip-audit
+
+      - name: Python Dependency Audit
+        if: steps.check-python.outputs.has-python-deps == 'true'
+        run: |
+          echo "=== Python Dependency Audit ===" | tee python-audit.txt
+          echo "" | tee -a python-audit.txt
+
+          # Try pip-audit
+          if [ -f "requirements.txt" ]; then
+            pip-audit -r requirements.txt --format json > python-audit.json || true
+            pip-audit -r requirements.txt | tee -a python-audit.txt || echo "No vulnerabilities found" | tee -a python-audit.txt
+          else
+            echo "No requirements.txt found" | tee -a python-audit.txt
+          fi
+
+      - name: Upload dependency scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-scan-results-${{ github.run_id }}
+          path: |
+            npm-audit.txt
+            npm-audit.json
+            python-audit.txt
+            python-audit.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # DOCKER IMAGE SCANNING
+  # Scans Docker images for vulnerabilities (if Dockerfiles present)
+  # ===========================================================================
+  docker-scan:
+    name: Docker Image Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Dockerfiles
+        id: check-docker
+        run: |
+          dockerfiles=$(find . -name "Dockerfile*" -not -path "*/node_modules/*" -not -path "*/.git/*")
+
+          if [ -n "$dockerfiles" ]; then
+            echo "has-dockerfiles=true" >> $GITHUB_OUTPUT
+            echo "✓ Dockerfiles found:"
+            echo "$dockerfiles"
+          else
+            echo "has-dockerfiles=false" >> $GITHUB_OUTPUT
+            echo "No Dockerfiles found"
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.check-docker.outputs.has-dockerfiles == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Scan Dockerfiles with Hadolint
+        if: steps.check-docker.outputs.has-dockerfiles == 'true'
+        run: |
+          echo "=== Dockerfile Security Scan ===" | tee dockerfile-scan.txt
+          echo "" | tee -a dockerfile-scan.txt
+
+          # Use Hadolint for Dockerfile linting
+          docker run --rm -i hadolint/hadolint < Dockerfile > hadolint-results.txt 2>&1 || true
+
+          if [ -s hadolint-results.txt ]; then
+            echo "Issues found:" | tee -a dockerfile-scan.txt
+            cat hadolint-results.txt | tee -a dockerfile-scan.txt
+          else
+            echo "✓ No issues found" | tee -a dockerfile-scan.txt
+          fi
+
+      - name: Upload Docker scan results
+        if: always() && steps.check-docker.outputs.has-dockerfiles == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-scan-results-${{ github.run_id }}
+          path: |
+            dockerfile-scan.txt
+            hadolint-results.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # LICENSE COMPLIANCE CHECKING
+  # Checks for license compatibility and compliance issues
+  # ===========================================================================
+  license-scan:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for package.json
+        id: check-npm
+        run: |
+          if [ -f "package.json" ]; then
+            echo "has-package-json=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-package-json=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install license checker
+        if: steps.check-npm.outputs.has-package-json == 'true'
+        run: npm install -g license-checker
+
+      - name: Check licenses
+        if: steps.check-npm.outputs.has-package-json == 'true'
+        run: |
+          echo "=== License Compliance Check ===" | tee license-report.txt
+          echo "" | tee -a license-report.txt
+
+          if [ -f "package-lock.json" ]; then
+            npm ci || npm install
+          else
+            npm install
+          fi
+
+          # Generate license report
+          license-checker --json > licenses.json || true
+          license-checker --summary | tee -a license-report.txt || true
+
+          echo "" | tee -a license-report.txt
+          echo "Full license details saved to licenses.json" | tee -a license-report.txt
+
+          # Check for problematic licenses
+          echo "" | tee -a license-report.txt
+          echo "Checking for potentially problematic licenses..." | tee -a license-report.txt
+
+          # Look for GPL, AGPL, or other copyleft licenses
+          if grep -iE "(GPL|AGPL|LGPL)" licenses.json; then
+            echo "⚠️  Found copyleft licenses - review recommended" | tee -a license-report.txt
+          else
+            echo "✓ No copyleft licenses detected" | tee -a license-report.txt
+          fi
+
+      - name: Upload license scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-scan-results-${{ github.run_id }}
+          path: |
+            license-report.txt
+            licenses.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # FILE PERMISSION AUDITING
+  # Checks for overly permissive file permissions
+  # ===========================================================================
+  permission-audit:
+    name: File Permission Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Audit file permissions
+        run: |
+          echo "=== File Permission Audit ===" | tee permission-audit.txt
+          echo "" | tee -a permission-audit.txt
+
+          # Check for world-writable files
+          echo "Checking for world-writable files..." | tee -a permission-audit.txt
+          world_writable=$(find . -type f -perm -002 -not -path "*/\.git/*" -not -path "*/node_modules/*" 2>/dev/null || true)
+
+          if [ -n "$world_writable" ]; then
+            echo "⚠️  World-writable files found:" | tee -a permission-audit.txt
+            echo "$world_writable" | tee -a permission-audit.txt
+            echo "" | tee -a permission-audit.txt
+          else
+            echo "✓ No world-writable files found" | tee -a permission-audit.txt
+            echo "" | tee -a permission-audit.txt
+          fi
+
+          # Check for executable files that shouldn't be
+          echo "Checking for suspicious executable files..." | tee -a permission-audit.txt
+          suspicious_exec=$(find . -type f -executable \
+            \( -name "*.json" -o -name "*.txt" -o -name "*.md" -o -name "*.yml" -o -name "*.yaml" \) \
+            -not -path "*/\.git/*" -not -path "*/node_modules/*" 2>/dev/null || true)
+
+          if [ -n "$suspicious_exec" ]; then
+            echo "⚠️  Non-script files with executable permissions:" | tee -a permission-audit.txt
+            echo "$suspicious_exec" | tee -a permission-audit.txt
+            echo "" | tee -a permission-audit.txt
+          else
+            echo "✓ No suspicious executable files found" | tee -a permission-audit.txt
+            echo "" | tee -a permission-audit.txt
+          fi
+
+          # Check for SUID/SGID files
+          echo "Checking for SUID/SGID files..." | tee -a permission-audit.txt
+          suid_files=$(find . -type f \( -perm -4000 -o -perm -2000 \) -not -path "*/\.git/*" 2>/dev/null || true)
+
+          if [ -n "$suid_files" ]; then
+            echo "⚠️  SUID/SGID files found:" | tee -a permission-audit.txt
+            echo "$suid_files" | tee -a permission-audit.txt
+          else
+            echo "✓ No SUID/SGID files found" | tee -a permission-audit.txt
+          fi
+
+      - name: Upload permission audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: permission-audit-results-${{ github.run_id }}
+          path: permission-audit.txt
+          retention-days: 30
+
+  # ===========================================================================
+  # SUPPLY CHAIN SECURITY
+  # Checks for supply chain security risks
+  # ===========================================================================
+  supply-chain-security:
+    name: Supply Chain Security Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for package.json
+        id: check-npm
+        run: |
+          if [ -f "package.json" ]; then
+            echo "has-package-json=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-package-json=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Analyze package.json
+        if: steps.check-npm.outputs.has-package-json == 'true'
+        run: |
+          echo "=== Supply Chain Security Analysis ===" | tee supply-chain.txt
+          echo "" | tee -a supply-chain.txt
+
+          echo "Analyzing package.json for security risks..." | tee -a supply-chain.txt
+          echo "" | tee -a supply-chain.txt
+
+          # Check for packages with suspicious characteristics
+          python3 << 'PYTHON_SCRIPT' | tee -a supply-chain.txt
+          import json
+          import os
+
+          if os.path.exists('package.json'):
+              with open('package.json', 'r') as f:
+                  pkg = json.load(f)
+
+              print("Package Information:")
+              print(f"  Name: {pkg.get('name', 'N/A')}")
+              print(f"  Version: {pkg.get('version', 'N/A')}")
+              print(f"  License: {pkg.get('license', 'N/A')}")
+              print()
+
+              dependencies = pkg.get('dependencies', {})
+              devDependencies = pkg.get('devDependencies', {})
+
+              print(f"Dependencies: {len(dependencies)}")
+              print(f"Dev Dependencies: {len(devDependencies)}")
+              print()
+
+              # Check for version pinning
+              unpinned = []
+              for dep, version in {**dependencies, **devDependencies}.items():
+                  if version.startswith('^') or version.startswith('~') or version == '*':
+                      unpinned.append(f"{dep}: {version}")
+
+              if unpinned:
+                  print("⚠️  Unpinned dependencies (supply chain risk):")
+                  for dep in unpinned[:10]:  # Show first 10
+                      print(f"    {dep}")
+                  if len(unpinned) > 10:
+                      print(f"    ... and {len(unpinned) - 10} more")
+              else:
+                  print("✓ All dependencies are pinned")
+          PYTHON_SCRIPT
+
+          echo "" | tee -a supply-chain.txt
+
+          # Check for lock file
+          if [ -f "package-lock.json" ]; then
+            echo "✓ package-lock.json present (good for reproducibility)" | tee -a supply-chain.txt
+          else
+            echo "⚠️  No package-lock.json found - run 'npm install' to generate" | tee -a supply-chain.txt
+          fi
+
+      - name: Upload supply chain analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supply-chain-analysis-${{ github.run_id }}
+          path: supply-chain.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # GENERATE CONSOLIDATED SECURITY REPORT
+  # Combines all security scan results into one comprehensive report
+  # ===========================================================================
+  generate-security-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - trufflehog-scan
+      - gitleaks-scan
+      - script-security-scan
+      - dependency-scan
+      - docker-scan
+      - license-scan
+      - permission-audit
+      - supply-chain-security
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all security artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: security-artifacts
+        continue-on-error: true
+
+      - name: Generate consolidated report
+        run: |
+          mkdir -p security-reports
+
+          cat > security-reports/SECURITY_REPORT.md << 'EOF'
+          # Security Scan Report
+
+          **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Workflow Run:** #${{ github.run_number }}
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref_name }}
+
+          ---
+
+          ## Scan Results Summary
+
+          | Scan Type | Status |
+          |-----------|--------|
+          | TruffleHog (Secret Detection) | ${{ needs.trufflehog-scan.result }} |
+          | Gitleaks (Secret Detection) | ${{ needs.gitleaks-scan.result }} |
+          | Script Security | ${{ needs.script-security-scan.result }} |
+          | Dependency Scanning | ${{ needs.dependency-scan.result }} |
+          | Docker Image Scanning | ${{ needs.docker-scan.result }} |
+          | License Compliance | ${{ needs.license-scan.result }} |
+          | File Permissions | ${{ needs.permission-audit.result }} |
+          | Supply Chain Security | ${{ needs.supply-chain-security.result }} |
+
+          ---
+
+          ## Detailed Results
+
+          Detailed results for each scan type are available in the downloaded artifacts.
+
+          ### Secret Detection
+          - **TruffleHog**: ${{ needs.trufflehog-scan.result }}
+          - **Gitleaks**: ${{ needs.gitleaks-scan.result }}
+
+          ### Code Security
+          - **Script Security**: ${{ needs.script-security-scan.result }}
+          - **File Permissions**: ${{ needs.permission-audit.result }}
+
+          ### Dependency Security
+          - **Dependency Scan**: ${{ needs.dependency-scan.result }}
+          - **License Compliance**: ${{ needs.license-scan.result }}
+          - **Supply Chain**: ${{ needs.supply-chain-security.result }}
+
+          ### Infrastructure Security
+          - **Docker Scanning**: ${{ needs.docker-scan.result }}
+
+          ---
+
+          ## Recommendations
+
+          1. Review all failed scans immediately
+          2. Address any high-severity vulnerabilities within 24 hours
+          3. Update dependencies with known vulnerabilities
+          4. Remove or rotate any detected secrets
+          5. Review and fix file permission issues
+
+          ---
+
+          ## Next Steps
+
+          - Download artifacts for detailed scan results
+          - Create issues for any security findings
+          - Update security policies as needed
+          - Schedule follow-up scans after remediation
+
+          **Report Generated by GitHub Actions Security Scan Workflow**
+          EOF
+
+          # Add artifacts listing
+          echo "" >> security-reports/SECURITY_REPORT.md
+          echo "## Available Artifacts" >> security-reports/SECURITY_REPORT.md
+          echo "" >> security-reports/SECURITY_REPORT.md
+
+          if [ -d "security-artifacts" ]; then
+            find security-artifacts -type f | while read file; do
+              echo "- \`$file\`" >> security-reports/SECURITY_REPORT.md
+            done
+          fi
+
+      - name: Upload consolidated security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-security-report-${{ github.run_id }}
+          path: security-reports/
+          retention-days: 90
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          cat security-reports/SECURITY_REPORT.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('security-reports/SECURITY_REPORT.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });

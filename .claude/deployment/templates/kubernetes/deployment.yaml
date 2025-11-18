@@ -1,0 +1,279 @@
+# ==============================================================================
+# Kubernetes Deployment
+# ==============================================================================
+# This manifest defines a Deployment with:
+# - Multiple replicas
+# - Resource limits
+# - Health checks (liveness & readiness probes)
+# - Rolling update strategy
+# - Environment configuration
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: default
+  labels:
+    app: my-app
+    version: v1.0.0
+    environment: production
+spec:
+  replicas: 3
+
+  # Selector to match pods
+  selector:
+    matchLabels:
+      app: my-app
+
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # Minimum time for pod to be ready
+  minReadySeconds: 10
+
+  # Revision history limit
+  revisionHistoryLimit: 10
+
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: v1.0.0
+        environment: production
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+
+    spec:
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+
+      # Service account
+      serviceAccountName: my-app-sa
+
+      # Init containers (run before main container)
+      initContainers:
+        - name: init-db-check
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Checking database connectivity..."
+              until nc -z postgres-service 5432; do
+                echo "Waiting for database..."
+                sleep 2
+              done
+              echo "Database is ready!"
+
+      # Main containers
+      containers:
+        - name: app
+          image: my-registry/my-app:latest
+          imagePullPolicy: Always
+
+          # Container ports
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          # Environment variables
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: LOG_LEVEL
+              value: "info"
+
+            # From ConfigMap
+            - name: API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: my-app-config
+                  key: api-url
+
+            # From Secret
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-secrets
+                  key: database-url
+
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-secrets
+                  key: api-key
+
+            # Kubernetes metadata
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+          # Resource limits and requests
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Liveness probe (is the app running?)
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Readiness probe (is the app ready to serve traffic?)
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Startup probe (for slow-starting applications)
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 30
+
+          # Volume mounts
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+            - name: data-volume
+              mountPath: /app/data
+            - name: logs-volume
+              mountPath: /app/logs
+
+          # Security context for the container
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+      # Volumes
+      volumes:
+        - name: config-volume
+          configMap:
+            name: my-app-config
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: my-app-pvc
+        - name: logs-volume
+          emptyDir: {}
+
+      # Image pull secrets
+      imagePullSecrets:
+        - name: my-registry-secret
+
+      # Node affinity and tolerations
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - my-app
+                topologyKey: kubernetes.io/hostname
+
+      # DNS policy
+      dnsPolicy: ClusterFirst
+
+      # Restart policy
+      restartPolicy: Always
+
+      # Termination grace period
+      terminationGracePeriodSeconds: 30
+
+---
+# ==============================================================================
+# ConfigMap
+# ==============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-app-config
+  namespace: default
+data:
+  api-url: "https://api.example.com"
+  log-level: "info"
+  feature-flags: |
+    {
+      "newFeature": true,
+      "betaFeature": false
+    }
+
+---
+# ==============================================================================
+# PersistentVolumeClaim
+# ==============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-app-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+
+---
+# ==============================================================================
+# ServiceAccount
+# ==============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-app-sa
+  namespace: default

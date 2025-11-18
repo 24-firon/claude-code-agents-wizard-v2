@@ -1,0 +1,134 @@
+{
+  "week_id": "2025-W47",
+  "schema_version": "1.0.0",
+  "start_date": "2025-11-17",
+  "end_date": "2025-11-23",
+  "session_count": 5,
+  "daily_breakdown": [
+    {
+      "date": "2025-11-17",
+      "session_count": 1,
+      "todos_completed": 3
+    },
+    {
+      "date": "2025-11-18",
+      "session_count": 2,
+      "todos_completed": 9
+    },
+    {
+      "date": "2025-11-19",
+      "session_count": 1,
+      "todos_completed": 5
+    },
+    {
+      "date": "2025-11-20",
+      "session_count": 0,
+      "todos_completed": 0
+    },
+    {
+      "date": "2025-11-21",
+      "session_count": 1,
+      "todos_completed": 7
+    },
+    {
+      "date": "2025-11-22",
+      "session_count": 0,
+      "todos_completed": 0
+    },
+    {
+      "date": "2025-11-23",
+      "session_count": 0,
+      "todos_completed": 0
+    }
+  ],
+  "totals": {
+    "todos_created": 28,
+    "todos_completed": 24,
+    "todos_blocked": 1,
+    "agent_invocations": {
+      "coder": 30,
+      "tester": 26,
+      "stuck": 5
+    },
+    "stuck_invocations": 5,
+    "total_duration_seconds": 18450,
+    "total_tokens_estimated": 620000
+  },
+  "averages": {
+    "sessions_per_day": 0.71,
+    "todos_per_day": 3.43,
+    "todos_per_session": 5.6,
+    "completion_rate": 85.71,
+    "session_duration_seconds": 3690,
+    "task_completion_time_seconds": 685,
+    "tokens_per_session": 124000
+  },
+  "success_rates": {
+    "overall_completion_rate": 85.71,
+    "coder_success_rate": 86.67,
+    "tester_success_rate": 84.62,
+    "first_time_success_rate": 76.67
+  },
+  "top_stuck_reasons": [
+    {
+      "reason_category": "test_failure",
+      "count": 2,
+      "percentage": 40.0
+    },
+    {
+      "reason_category": "dependency_issue",
+      "count": 2,
+      "percentage": 40.0
+    },
+    {
+      "reason_category": "clarification_needed",
+      "count": 1,
+      "percentage": 20.0
+    }
+  ],
+  "most_active_agent": "coder",
+  "most_productive_day": {
+    "date": "2025-11-21",
+    "todos_completed": 7,
+    "sessions": 1
+  },
+  "trends": {
+    "completion_rate_change": 3.2,
+    "productivity_change": 8.5,
+    "stuck_rate_change": -12.3,
+    "interpretation": "improving"
+  },
+  "workspace_breakdown": [
+    {
+      "workspace_name": "react-todo-app",
+      "sessions": 1,
+      "todos_completed": 5
+    },
+    {
+      "workspace_name": "express-api-server",
+      "sessions": 1,
+      "todos_completed": 4
+    },
+    {
+      "workspace_name": "nextjs-blog",
+      "sessions": 1,
+      "todos_completed": 3
+    },
+    {
+      "workspace_name": "python-data-pipeline",
+      "sessions": 1,
+      "todos_completed": 5
+    },
+    {
+      "workspace_name": "vue-dashboard",
+      "sessions": 1,
+      "todos_completed": 7
+    }
+  ],
+  "quality_metrics": {
+    "average_test_pass_rate": 87.5,
+    "rework_rate": 15.4,
+    "stuck_per_session": 1.0,
+    "first_attempt_success_rate": 76.67
+  }
+}

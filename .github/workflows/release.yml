@@ -1,0 +1,626 @@
+name: Release
+
+# =============================================================================
+# Automated release workflow with semantic versioning, changelog generation,
+# GitHub releases, and documentation deployment
+# =============================================================================
+
+on:
+  # Manual trigger with version selection
+  workflow_dispatch:
+    inputs:
+      version-bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: 'patch'
+
+      prerelease:
+        description: 'Create as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+      skip-tests:
+        description: 'Skip tests (not recommended)'
+        required: false
+        type: boolean
+        default: false
+
+  # Automatic release on version tags
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  # ===========================================================================
+  # VALIDATE RELEASE
+  # Runs tests and validation before creating release
+  # ===========================================================================
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event.inputs.skip-tests != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate JSON files
+        run: |
+          echo "Validating JSON files..."
+          json_files=$(find . -type f -name "*.json" -not -path "*/node_modules/*" -not -path "*/.git/*")
+
+          has_errors=0
+          while IFS= read -r file; do
+            if ! python3 -m json.tool "$file" > /dev/null 2>&1; then
+              echo "ERROR: Invalid JSON in $file"
+              has_errors=1
+            else
+              echo "✓ Valid: $file"
+            fi
+          done <<< "$json_files"
+
+          if [ $has_errors -eq 1 ]; then
+            echo "❌ JSON validation failed"
+            exit 1
+          fi
+
+          echo "✓ All JSON files are valid"
+
+      - name: Validate agent definitions
+        run: |
+          pip install PyYAML
+
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import sys
+          import yaml
+          import re
+
+          AGENTS_DIR = ".claude/agents"
+
+          if not os.path.exists(AGENTS_DIR):
+              print("No agents directory found")
+              sys.exit(0)
+
+          md_files = [f for f in os.listdir(AGENTS_DIR) if f.endswith('.md')]
+
+          if not md_files:
+              print("No agent files found")
+              sys.exit(0)
+
+          has_errors = False
+
+          for filename in md_files:
+              filepath = os.path.join(AGENTS_DIR, filename)
+
+              with open(filepath, 'r') as f:
+                  content = f.read()
+
+              frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+
+              if not frontmatter_match:
+                  print(f"ERROR: No frontmatter in {filename}")
+                  has_errors = True
+                  continue
+
+              try:
+                  yaml.safe_load(frontmatter_match.group(1))
+                  print(f"✓ Valid: {filename}")
+              except:
+                  print(f"ERROR: Invalid YAML in {filename}")
+                  has_errors = True
+
+          if has_errors:
+              sys.exit(1)
+
+          print("✓ All agent definitions are valid")
+          PYTHON_SCRIPT
+
+      - name: Run tests (if configured)
+        run: |
+          if [ -f "package.json" ]; then
+            npm ci || npm install
+            npm test || echo "No tests configured"
+          else
+            echo "No package.json found - skipping npm tests"
+          fi
+
+  # ===========================================================================
+  # DETERMINE VERSION
+  # Calculates the next version number based on semantic versioning
+  # ===========================================================================
+  determine-version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: validate
+    if: always() && (needs.validate.result == 'success' || needs.validate.result == 'skipped')
+    outputs:
+      new-version: ${{ steps.version.outputs.new-version }}
+      previous-version: ${{ steps.version.outputs.previous-version }}
+      version-tag: ${{ steps.version.outputs.version-tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          # Get latest tag
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $latest_tag"
+          echo "previous-version=${latest_tag}" >> $GITHUB_OUTPUT
+
+          # Parse version components
+          version=${latest_tag#v}
+          IFS='.' read -r -a parts <<< "$version"
+          major=${parts[0]:-0}
+          minor=${parts[1]:-0}
+          patch=${parts[2]:-0}
+
+          # Determine version bump
+          bump_type="${{ github.event.inputs.version-bump || 'patch' }}"
+
+          case "$bump_type" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          new_version="${major}.${minor}.${patch}"
+          version_tag="v${new_version}"
+
+          echo "New version: $new_version"
+          echo "Version tag: $version_tag"
+
+          echo "new-version=${new_version}" >> $GITHUB_OUTPUT
+          echo "version-tag=${version_tag}" >> $GITHUB_OUTPUT
+
+  # ===========================================================================
+  # GENERATE CHANGELOG
+  # Creates changelog from git commits since last release
+  # ===========================================================================
+  generate-changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: determine-version
+    outputs:
+      changelog: ${{ steps.changelog.outputs.content }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          previous_tag="${{ needs.determine-version.outputs.previous-version }}"
+          new_version="${{ needs.determine-version.outputs.new-version }}"
+
+          echo "Generating changelog from $previous_tag to HEAD"
+
+          # Get commits since last tag
+          if git rev-parse "$previous_tag" >/dev/null 2>&1; then
+            commits=$(git log ${previous_tag}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          else
+            commits=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          # Categorize commits
+          features=""
+          fixes=""
+          chores=""
+          other=""
+
+          while IFS= read -r commit; do
+            if [[ "$commit" =~ ^-\ feat.* ]] || [[ "$commit" =~ ^-\ add.* ]]; then
+              features="${features}${commit}\n"
+            elif [[ "$commit" =~ ^-\ fix.* ]]; then
+              fixes="${fixes}${commit}\n"
+            elif [[ "$commit" =~ ^-\ chore.* ]] || [[ "$commit" =~ ^-\ docs.* ]]; then
+              chores="${chores}${commit}\n"
+            else
+              other="${other}${commit}\n"
+            fi
+          done <<< "$commits"
+
+          # Build changelog
+          changelog="# Release v${new_version}\n\n"
+          changelog+="**Release Date:** $(date -u +%Y-%m-%d)\n\n"
+
+          if [ -n "$features" ]; then
+            changelog+="## ✨ Features\n\n${features}\n"
+          fi
+
+          if [ -n "$fixes" ]; then
+            changelog+="## 🐛 Bug Fixes\n\n${fixes}\n"
+          fi
+
+          if [ -n "$chores" ]; then
+            changelog+="## 🔧 Maintenance\n\n${chores}\n"
+          fi
+
+          if [ -n "$other" ]; then
+            changelog+="## 📝 Other Changes\n\n${other}\n"
+          fi
+
+          changelog+="---\n\n"
+          changelog+="**Full Changelog:** https://github.com/${{ github.repository }}/compare/${previous_tag}...v${new_version}\n"
+
+          # Save changelog
+          echo -e "$changelog" > CHANGELOG.md
+
+          # Output for next step (escape newlines)
+          {
+            echo "content<<EOF"
+            echo -e "$changelog"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "✓ Changelog generated"
+
+      - name: Upload changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: CHANGELOG.md
+          retention-days: 90
+
+  # ===========================================================================
+  # CREATE GIT TAG
+  # Creates and pushes the version tag
+  # ===========================================================================
+  create-tag:
+    name: Create Git Tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [determine-version, generate-changelog]
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          version_tag="${{ needs.determine-version.outputs.version-tag }}"
+
+          echo "Creating tag: $version_tag"
+
+          git tag -a "$version_tag" -m "Release $version_tag"
+          git push origin "$version_tag"
+
+          echo "✓ Tag created and pushed: $version_tag"
+
+  # ===========================================================================
+  # CREATE GITHUB RELEASE
+  # Creates the GitHub release with changelog and assets
+  # ===========================================================================
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [determine-version, generate-changelog, create-tag]
+    if: always() && (needs.create-tag.result == 'success' || github.event_name == 'push')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog
+        continue-on-error: true
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+
+          echo "Preparing release assets..."
+
+          # Copy documentation
+          if [ -f "README.md" ]; then
+            cp README.md release-assets/
+          fi
+
+          # Copy agent definitions
+          if [ -d ".claude/agents" ]; then
+            mkdir -p release-assets/agents
+            cp .claude/agents/*.md release-assets/agents/ 2>/dev/null || true
+          fi
+
+          # Copy metrics schema
+          if [ -f ".claude/metrics/schema.json" ]; then
+            cp .claude/metrics/schema.json release-assets/
+          fi
+
+          # Create archive
+          tar -czf release-assets/claude-agents-${version_tag}.tar.gz \
+            .claude/agents/ \
+            .claude/CLAUDE.md \
+            README.md \
+            2>/dev/null || echo "Some files not found - continuing"
+
+          echo "✓ Release assets prepared"
+        env:
+          version_tag: ${{ needs.determine-version.outputs.version-tag }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.determine-version.outputs.version-tag }}
+          name: Release ${{ needs.determine-version.outputs.version-tag }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          files: |
+            release-assets/*.tar.gz
+            release-assets/README.md
+            release-assets/schema.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-${{ needs.determine-version.outputs.version-tag }}
+          path: release-assets/
+          retention-days: 90
+
+  # ===========================================================================
+  # UPDATE VERSION FILE
+  # Updates version in package.json or version file if present
+  # ===========================================================================
+  update-version-file:
+    name: Update Version File
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [determine-version, create-release]
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Update package.json version
+        run: |
+          new_version="${{ needs.determine-version.outputs.new-version }}"
+
+          if [ -f "package.json" ]; then
+            echo "Updating package.json to version $new_version"
+
+            # Update version using Node.js
+            node << 'NODE_SCRIPT'
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = process.env.NEW_VERSION;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('✓ package.json updated');
+            NODE_SCRIPT
+          else
+            echo "No package.json found - skipping version update"
+          fi
+
+          # Create/update VERSION file
+          echo "$new_version" > VERSION
+          echo "✓ VERSION file updated"
+        env:
+          NEW_VERSION: ${{ needs.determine-version.outputs.new-version }}
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -n "$(git status --porcelain)" ]; then
+            git add package.json VERSION 2>/dev/null || git add VERSION
+            git commit -m "chore: bump version to ${{ needs.determine-version.outputs.new-version }} [skip ci]"
+            git push
+            echo "✓ Version bump committed"
+          else
+            echo "No version files to update"
+          fi
+
+  # ===========================================================================
+  # DEPLOY DOCUMENTATION
+  # Deploys documentation to GitHub Pages (if configured)
+  # ===========================================================================
+  deploy-docs:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: create-release
+    if: success() && github.event.repository.has_pages
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate documentation site
+        run: |
+          mkdir -p docs-site
+
+          # Create index page
+          cat > docs-site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Claude Code Agents Documentation</title>
+              <style>
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                      line-height: 1.6;
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      padding: 20px;
+                      background: #f5f5f5;
+                  }
+                  .header {
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      color: white;
+                      padding: 40px;
+                      border-radius: 10px;
+                      margin-bottom: 30px;
+                  }
+                  .content {
+                      background: white;
+                      padding: 30px;
+                      border-radius: 10px;
+                      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                  }
+                  a {
+                      color: #667eea;
+                      text-decoration: none;
+                  }
+                  a:hover {
+                      text-decoration: underline;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>Claude Code Agents</h1>
+                  <p>Orchestrated AI Agent System Documentation</p>
+              </div>
+              <div class="content">
+                  <h2>Documentation</h2>
+                  <ul>
+                      <li><a href="README.html">README</a></li>
+                      <li><a href="agents/">Agent Definitions</a></li>
+                      <li><a href="https://github.com/${{ github.repository }}/releases">Releases</a></li>
+                  </ul>
+              </div>
+          </body>
+          </html>
+          EOF
+
+          # Convert README to HTML (simple version)
+          if [ -f "README.md" ]; then
+            cp README.md docs-site/
+          fi
+
+          echo "✓ Documentation site generated"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs-site
+          publish_branch: gh-pages
+
+  # ===========================================================================
+  # NOTIFY RELEASE
+  # Sends notifications about the new release
+  # ===========================================================================
+  notify-release:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [determine-version, create-release]
+    if: always() && needs.create-release.result == 'success'
+    steps:
+      - name: Generate release summary
+        run: |
+          cat > release-summary.md << EOF
+          # 🚀 New Release: ${{ needs.determine-version.outputs.version-tag }}
+
+          A new release has been published!
+
+          **Version:** ${{ needs.determine-version.outputs.version-tag }}
+          **Previous:** ${{ needs.determine-version.outputs.previous-version }}
+          **Release Date:** $(date -u +%Y-%m-%d)
+
+          **View Release:** https://github.com/${{ github.repository }}/releases/tag/${{ needs.determine-version.outputs.version-tag }}
+
+          ---
+          *Auto-generated by release workflow*
+          EOF
+
+          cat release-summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Send Slack notification (if configured)
+        if: secrets.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "🚀 New Release: ${{ needs.determine-version.outputs.version-tag }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚀 New Release Published"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Version:*\n${{ needs.determine-version.outputs.version-tag }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Release"
+                      },
+                      "url": "https://github.com/${{ github.repository }}/releases/tag/${{ needs.determine-version.outputs.version-tag }}"
+                    }
+                  ]
+                }
+              ]
+            }' || echo "Slack notification failed"

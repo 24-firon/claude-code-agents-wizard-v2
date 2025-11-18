@@ -1,0 +1,115 @@
+{
+  "$schema": "https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2/schema/workspace-config",
+  "name": "project-b",
+  "displayName": "Mobile Application",
+  "description": "Cross-platform mobile application built with React Native and Expo. Features offline-first architecture and native integrations.",
+  "created": "2025-11-18T22:00:00.000Z",
+  "lastModified": "2025-11-18T22:00:00.000Z",
+  "version": "1.0.0",
+  "type": "mobile-application",
+  "repository": {
+    "type": "git",
+    "url": "",
+    "branch": "develop"
+  },
+  "enabledAgents": [
+    "coder",
+    "tester",
+    "stuck",
+    "researcher"
+  ],
+  "agentConfig": {
+    "coder": {
+      "defaultLanguage": "typescript",
+      "lintingEnabled": true,
+      "formattingEnabled": true,
+      "autoImportEnabled": true,
+      "strictTypeChecking": false,
+      "frameworks": ["react-native", "expo"],
+      "packageManager": "yarn"
+    },
+    "tester": {
+      "defaultBrowser": "webkit",
+      "screenshotOnFailure": true,
+      "videoOnFailure": true,
+      "headless": false,
+      "slowMo": 100,
+      "testTimeout": 60000,
+      "navigationTimeout": 15000,
+      "screenshotPath": ".claude/screenshots/project-b",
+      "mobileEmulation": {
+        "enabled": true,
+        "device": "iPhone 14 Pro",
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)"
+      }
+    },
+    "researcher": {
+      "enabledSources": ["jina", "web"],
+      "maxResults": 5,
+      "cacheResults": true,
+      "cacheDurationHours": 48,
+      "focusAreas": ["react-native", "expo", "mobile-ui", "performance"]
+    }
+  },
+  "settings": {
+    "autoArchive": false,
+    "maxCompletedTodos": 100,
+    "archiveAfterDays": 30,
+    "defaultPriority": "normal",
+    "requireAssignment": false,
+    "enableTodoReminders": true,
+    "enableProgressTracking": true,
+    "enableTimeTracking": false,
+    "reminderIntervalHours": 24
+  },
+  "environment": {
+    "nodejs": "18.x",
+    "yarn": "1.22.x",
+    "react-native": "0.72.x",
+    "expo": "49.x",
+    "typescript": "5.x"
+  },
+  "platforms": {
+    "ios": {
+      "enabled": true,
+      "minVersion": "14.0",
+      "targetVersion": "17.0"
+    },
+    "android": {
+      "enabled": true,
+      "minSdkVersion": 23,
+      "targetSdkVersion": 33
+    }
+  },
+  "paths": {
+    "root": ".",
+    "src": "./src",
+    "components": "./src/components",
+    "screens": "./src/screens",
+    "navigation": "./src/navigation",
+    "assets": "./assets",
+    "tests": "./__tests__",
+    "docs": "./docs"
+  },
+  "tags": ["mobile", "react-native", "expo", "ios", "android", "typescript"],
+  "team": {
+    "owner": "mobile-team",
+    "contributors": [],
+    "reviewers": []
+  },
+  "integrations": {
+    "ci": false,
+    "deployment": false,
+    "monitoring": false,
+    "analytics": true,
+    "crashReporting": true
+  },
+  "features": {
+    "offlineMode": true,
+    "pushNotifications": true,
+    "inAppPurchases": false,
+    "socialAuth": true,
+    "biometricAuth": true
+  },
+  "notes": "Mobile-first development. Focus on performance and offline functionality. Security and performance audits are optional for this project."
+}

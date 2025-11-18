@@ -1,0 +1,26 @@
+{
+  "name": "hello-world-plugin",
+  "version": "1.0.0",
+  "description": "A simple example plugin demonstrating the basics",
+  "author": "Claude Code Team",
+  "license": "MIT",
+  "main": "index.js",
+  "agents": [],
+  "tools": [],
+  "hooks": {},
+  "permissions": [
+    "events:emit",
+    "events:subscribe",
+    "config:read"
+  ],
+  "config": {
+    "greeting": "Hello",
+    "name": "World"
+  },
+  "enabled": true,
+  "autoload": true,
+  "priority": 0,
+  "tags": ["example", "tutorial", "getting-started"],
+  "keywords": ["hello", "world", "example", "demo"],
+  "documentation": "README.md"
+}
