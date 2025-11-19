@@ -9,17 +9,6 @@
     "NEXT_PUBLIC_SITE_URL": "https://kiagentur.com",
     "NODE_ENV": "production"
   },
-  "build": {
-    "env": {
-      "RESEND_API_KEY": "@resend-api-key",
-      "FROM_EMAIL": "@from-email",
-      "ADMIN_EMAIL": "@admin-email",
-      "REPLY_TO_EMAIL": "@reply-to-email",
-      "N8N_WEBHOOK_URL": "@n8n-webhook-url",
-      "CONVERTKIT_API_KEY": "@convertkit-api-key",
-      "CONVERTKIT_FORM_ID": "@convertkit-form-id"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
@@ -42,15 +31,9 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.resend.com https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
     }
   ]
 }

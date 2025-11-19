@@ -189,7 +189,7 @@ Enhanced multi-page marketing website for KI Agentur, a German AI agency special
 ### Code Statistics
 - **Total Lines**: ~1,659 (TypeScript/React)
 - **Files Created**: 50+ (pages, components, utilities, docs)
-- **API Routes**: 3 (contact, subscribe, webhooks/calendly)
+- **API Routes**: 5 (contact, subscribe, health, webhooks/calendly, webhooks/sanity)
 - **Components**: 15+ reusable components
 - **Utility Functions**: 12+ (validation, sanitization, rate limiting, errors)
 - **Strategic Documents**: 6 (vision, PRD, brand, UX, UI, architecture)
@@ -359,7 +359,7 @@ CONVERTKIT_FORM_ID=your_form_id
 | **Architecture** | Software Architect | ✅ Passed | Next.js 14 + Tailwind v4 |
 | **Architecture** | Database Admin | ✅ Passed | Stateless MVP schema |
 | **Implementation** | Frontend Developer | ✅ Passed | 13 pages implemented |
-| **Implementation** | Backend Engineer | ✅ Passed | 3 API routes with security |
+| **Implementation** | Backend Engineer | ✅ Passed | 5 API routes (contact, subscribe, health, webhooks) |
 | **Quality** | Code Reviewer | ✅ Passed | **9.2/10** score |
 | **Security** | App Security Engineer | ✅ Passed | OWASP compliance |
 | **Security** | Security Auditor | ✅ Passed | 0 CVEs |
