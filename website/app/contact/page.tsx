@@ -204,11 +204,11 @@ export default function ContactPage() {
               },
               {
                 q: 'Do you work with companies outside Europe?',
-                a: 'Yes! We serve clients globally, though we're based in Germany. Time zone coordination has never been an issue.'
+                a: "Yes! We serve clients globally, though we're based in Germany. Time zone coordination has never been an issue."
               },
               {
-                q: 'What's your pricing structure?',
-                a: 'Project-based or retainer engagements. We provide transparent pricing after understanding your requirements. We're premium-positioned—not the cheapest, but excellent value for quality delivered.'
+                q: "What's your pricing structure?",
+                a: "Project-based or retainer engagements. We provide transparent pricing after understanding your requirements. We're premium-positioned—not the cheapest, but excellent value for quality delivered."
               },
               {
                 q: 'Can you work with our existing systems?',

@@ -11,7 +11,7 @@ export default function BlogPage() {
     {
       slug: 'production-ready-n8n',
       title: 'Building Production-Ready n8n Workflows: 5 Advanced Patterns',
-      excerpt: 'There's a big gap between a working demo and a production-ready workflow. Here are the five patterns we use on every project to build n8n automation that doesn't break at 2am.',
+      excerpt: "There's a big gap between a working demo and a production-ready workflow. Here are the five patterns we use on every project to build n8n automation that doesn't break at 2am.",
       category: 'Technical Deep Dive',
       readTime: '12 min read',
       date: '2025-01-15',
@@ -19,7 +19,7 @@ export default function BlogPage() {
     },
     {
       slug: 'why-not-chatgpt',
-      title: 'Why Most "AI Consultants" Just Rebrand ChatGPT (And Why That's Not Enough)',
+      title: "Why Most \"AI Consultants\" Just Rebrand ChatGPT (And Why That's Not Enough)",
       excerpt: 'The harsh truth about commodity AI consulting and what it takes to build capabilities that actually provide competitive advantage.',
       category: 'Thought Leadership',
       readTime: '8 min read',
@@ -29,7 +29,7 @@ export default function BlogPage() {
     {
       slug: 'claude-code-mcp',
       title: 'Claude Code + Model Context Protocol: The Future of AI Development',
-      excerpt: 'How we use cutting-edge tools to build AI agents that competitors can't easily replicate. A technical guide to MCP integration.',
+      excerpt: "How we use cutting-edge tools to build AI agents that competitors can't easily replicate. A technical guide to MCP integration.",
       category: 'Technical Deep Dive',
       readTime: '15 min read',
       date: '2025-01-05',

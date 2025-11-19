@@ -56,7 +56,7 @@ export function createErrorResponse(
     error: {
       code,
       message,
-      ...(details && { details }),
+      ...(details ? { details } : {}),
     },
   };
 
@@ -76,8 +76,8 @@ export function createSuccessResponse<T = unknown>(
 ): NextResponse<ApiSuccessResponse<T>> {
   const response: ApiSuccessResponse<T> = {
     success: true,
-    ...(data && { data }),
-    ...(message && { message }),
+    ...(data !== undefined ? { data } : {}),
+    ...(message ? { message } : {}),
   };
 
   return NextResponse.json(response, { status });

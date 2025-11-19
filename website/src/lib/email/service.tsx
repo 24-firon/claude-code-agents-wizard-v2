@@ -29,9 +29,9 @@ export async function sendContactConfirmation(data: ContactFormData) {
     const result = await resend.emails.send({
       from: `KI Agentur <${FROM_EMAIL}>`,
       to: email,
-      replyTo: REPLY_TO_EMAIL,
+      reply_to: REPLY_TO_EMAIL,
       subject: 'We received your message - KI Agentur',
-      react: ContactConfirmation({ name, company }),
+      react: <ContactConfirmation name={name} company={company} />,
     });
 
     console.log('Contact confirmation sent:', result);
@@ -57,16 +57,16 @@ export async function sendAdminNotification(data: ContactFormData) {
     const result = await resend.emails.send({
       from: `KI Agentur Contact Form <${FROM_EMAIL}>`,
       to: ADMIN_EMAIL,
-      replyTo: email,
+      reply_to: email,
       subject: `🔔 New Lead: ${name} from ${company}`,
-      react: AdminNotification({
-        name,
-        email,
-        company,
-        message,
-        budget,
-        submittedAt,
-      }),
+      react: <AdminNotification
+        name={name}
+        email={email}
+        company={company}
+        message={message}
+        budget={budget}
+        submittedAt={submittedAt}
+      />,
     });
 
     console.log('Admin notification sent:', result);
@@ -85,9 +85,9 @@ export async function sendNewsletterWelcome(email: string) {
     const result = await resend.emails.send({
       from: `KI Agentur <${FROM_EMAIL}>`,
       to: email,
-      replyTo: REPLY_TO_EMAIL,
+      reply_to: REPLY_TO_EMAIL,
       subject: 'Welcome to KI Agentur Insights! 🎉',
-      react: NewsletterWelcome({ email }),
+      react: <NewsletterWelcome email={email} />,
     });
 
     console.log('Newsletter welcome sent:', result);
@@ -114,7 +114,7 @@ export async function sendPlainTextEmail({
     const result = await resend.emails.send({
       from: `KI Agentur <${FROM_EMAIL}>`,
       to,
-      replyTo: REPLY_TO_EMAIL,
+      reply_to: REPLY_TO_EMAIL,
       subject,
       text,
     });
