@@ -1,13 +1,14 @@
 # Build an Entire Fake Software Company with Claude Code 🚀
 
-Turn a single idea into a complete software product using 12 specialized AI agents working together like a real startup team.
+Turn a single idea into a complete software product using 20 specialized AI agents working together like a real startup team.
 
-Inspired by the viral Reddit post about building a fake company with Claude Code, this is a complete software company simulation where you're the CEO and Claude Code orchestrates 12 specialized agents from strategy to deployment.
+Inspired by the viral Reddit post about building a fake company with Claude Code, this is a complete software company simulation where you're the CEO and Claude Code orchestrates 20 specialized agents (12 Business + 5 DevTools + 3 Core) from strategy to deployment with intelligent quality gates and two-layer security.
 
 ## 🎯 What Is This?
 
-This is a **complete software company simulation** built on Claude Code's agent orchestration system. Give it a product idea, and watch as 12 specialized AI agents collaborate like a real startup team to:
+This is a **complete software company simulation** built on Claude Code's agent orchestration system with the **Golden Path Enhancement**. Give it a product idea, and watch as 20 specialized AI agents collaborate like a real startup team:
 
+### 12 Business Process Agents (Core Workflow)
 - Define product strategy and vision (CPO)
 - Plan features and roadmap (Product Manager)
 - Design brand and marketing (Marketer)
@@ -17,11 +18,23 @@ This is a **complete software company simulation** built on Claude Code's agent 
 - Design the database (DBA)
 - Build the frontend (Frontend Developer)
 - Build the backend (Backend Engineer)
-- Secure the application (Security Engineer)
+- Secure the application (App Security Engineer)
 - Test everything (QA Engineer)
 - Deploy to production (DevOps Engineer)
 
-**You're the CEO. They're your team. Let's build something amazing.**
+### 5 DevTools Enhancement Agents (Quality Gates)
+- **Researcher** - Market research & technical evaluation (Phase 0 - Optional)
+- **Code Reviewer** - Code quality gate BEFORE security (Phase 4.5 - Mandatory)
+- **Security Auditor** - Infrastructure security layer (Phase 5 - Mandatory, parallel with App Security)
+- **Performance Optimizer** - Post-deployment optimization (Phase 7 - Optional)
+- **Recovery** - Smart error auto-fix before human escalation (Always available)
+
+### 3 Core Support Agents (Always Available)
+- **Coder** - Implementation specialist for specific code tasks
+- **Tester** - Visual testing specialist with Playwright
+- **Stuck** - Human escalation for critical decisions
+
+**You're the CEO. They're your team. Let's build something amazing with intelligent quality gates and two-layer security.**
 
 ## 🏢 Meet Your Complete Team
 
@@ -119,49 +132,69 @@ This is a **complete software company simulation** built on Claude Code's agent 
 
 ## ⚡ How It Works
 
-Claude Code with its 200k context window acts as the **orchestrator** - like a VP of Engineering managing the entire team. Here's the complete workflow:
+Claude Code with its 200k context window acts as the **orchestrator** - like a VP of Engineering managing the entire team. Here's the complete **Golden Path** workflow with intelligent quality gates:
 
-### The 6 Phases
+### The Enhanced 7 Phases
 
-**Phase 1: Strategy**
+**Phase 0: Research (Optional - Invoke When Needed)**
+- Researcher gathers market data, competitor analysis, or technical documentation
+- Invoked when CPO, PM, or Architect needs external research/data
+
+**Phase 1: Strategy (Sequential)**
 1. CPO defines product vision and strategy
 2. Senior PM creates detailed requirements and user stories
 3. Marketer develops brand identity and messaging
 
-**Phase 2: Design**
+**Phase 2: Design (Parallel)**
 4. UX Designer creates user flows and wireframes
 5. Product Designer builds high-fidelity mockups
 
-**Phase 3: Architecture**
+**Phase 3: Architecture (Sequential)**
 6. Software Architect designs system architecture
 7. DBA designs database schema
 
-**Phase 4: Engineering**
+**Phase 4: Engineering (Parallel)**
 8. Frontend Developer builds the UI
 9. Backend Engineer builds the API
-10. Security Engineer secures the application
 
-**Phase 5: Quality**
-11. QA Engineer tests everything with Playwright
+**Phase 4.5: Code Quality Gate (MANDATORY - New!)**
+10. **Code Reviewer** analyzes code quality, complexity, and best practices
+    - Happens BEFORE security review to ensure clean code
+    - Catches code smells, duplication, maintainability issues
+    - Makes security review more effective
 
-**Phase 6: Deployment**
-12. DevOps Engineer deploys to production
+**Phase 5: Security & Quality (Enhanced Two-Layer)**
+11. **App Security Engineer** scans application code (OWASP, XSS, SQL injection)
+12. **Security Auditor** scans infrastructure & dependencies (CVEs, supply chain) - PARALLEL!
+13. QA Engineer tests everything with Playwright
 
-**Throughout:** Stuck agent escalates any problems to you for decisions
+**Phase 6: Deployment (Final)**
+14. DevOps Engineer deploys to production
 
-### The Orchestration Flow
+**Phase 7: Optimization (Optional - Post-Deployment)**
+- Performance Optimizer runs Lighthouse audits and optimizes bundle size
+- Invoked when user requests performance tuning or QA finds issues
+
+**Throughout:**
+- **Recovery** agent attempts auto-fix for known error patterns FIRST
+- **Stuck** agent escalates to you only when recovery can't fix or decisions needed
+
+### The Orchestration Flow (Golden Path)
 
 ```
-YOU (CEO): "Build a SaaS task management app"
+YOU (CEO): "Build a SaaS task management app with real-time features"
     ↓
 CLAUDE (Orchestrator): Creates comprehensive todo list
+    ↓
+PHASE 0: RESEARCH (Optional - if needed)
+└─→ Invokes Researcher → Market analysis, competitor research
     ↓
 PHASE 1: STRATEGY
 ├─→ Invokes CPO → Product vision & strategy
 ├─→ Invokes Senior PM → Requirements & user stories
 └─→ Invokes Marketer → Brand identity & messaging
     ↓
-PHASE 2: DESIGN
+PHASE 2: DESIGN (Parallel)
 ├─→ Invokes UX Designer → User flows & wireframes
 └─→ Invokes Product Designer → High-fidelity mockups
     ↓
@@ -169,21 +202,36 @@ PHASE 3: ARCHITECTURE
 ├─→ Invokes Software Architect → System architecture
 └─→ Invokes DBA → Database schema
     ↓
-PHASE 4: ENGINEERING
+PHASE 4: ENGINEERING (Parallel)
 ├─→ Invokes Frontend Developer → UI implementation
-├─→ Invokes Backend Engineer → API implementation
-└─→ Invokes Security Engineer → Security implementation
+└─→ Invokes Backend Engineer → API implementation
     ↓
-PHASE 5: QUALITY
-└─→ Invokes QA Engineer → Comprehensive testing
+PHASE 4.5: CODE QUALITY GATE ⭐ MANDATORY
+└─→ Invokes Code Reviewer → Quality analysis, code smells, best practices
+    ├─→ Ensures clean code BEFORE security review
+    └─→ Makes security audit more effective
+    ↓
+PHASE 5: SECURITY & QUALITY (Two-Layer ⭐)
+├─→ Invokes App Security Engineer (Application) → OWASP, XSS, SQL injection
+├─→ Invokes Security Auditor (Infrastructure) → CVE scans, dependencies ⭐ PARALLEL
+└─→ Invokes QA Engineer → E2E testing with Playwright
     ↓
 PHASE 6: DEPLOYMENT
 └─→ Invokes DevOps Engineer → Production deployment
     ↓
+PHASE 7: OPTIMIZATION (Optional - if requested)
+└─→ Invokes Performance Optimizer → Lighthouse audit, bundle optimization ⭐
+    ↓
 CLAUDE: Project complete! ✅
+    - Code quality verified (Phase 4.5)
+    - Two-layer security passed (Phase 5)
+    - Performance optimized (Phase 7)
+    - Zero 404 errors, all tests passing
 ```
 
-At **any point**, if an agent encounters a problem, they invoke the **stuck agent** which escalates to you for a decision.
+**Smart Error Handling:**
+- **Recovery** agent attempts auto-fix FIRST (checks recovery-patterns.json)
+- **Stuck** agent escalates to you ONLY if recovery can't fix or decisions needed
 
 ## 💡 Complete Example Workflow
 
@@ -327,41 +375,119 @@ Claude invokes DevOps Engineer:
 
 **All from a single prompt!**
 
-## 🛠️ Advanced DevTools & Infrastructure
+## 🛠️ DevTools Enhancement Layer: When, How, and Why
 
-Beyond the core 12-agent company, this system includes powerful development tools and infrastructure support.
+The **Golden Path Enhancement** adds 5 specialized DevTools agents that intelligently enhance the core 12-agent workflow at specific quality gates. Here's exactly when and why each is invoked:
 
-### 5 Additional Tech-Focused Agents
+### researcher (Phase 0 - Pre-Strategy) - OPTIONAL
 
-**Researcher**
+**When Invoked:**
+- CPO needs market research before creating product vision
+- PM needs competitive analysis for feature prioritization
+- Architect needs technology evaluation (React vs Vue, PostgreSQL vs MongoDB)
+- ANY agent needs external documentation (API docs, framework guides)
+
+**How It Works:**
 - Web research & documentation analysis powered by Jina AI
 - Fetches and analyzes documentation from any URL
 - Provides context-aware insights for implementation
-- Helps answer technical questions with real-time web data
 
-**Security Auditor**
+**Why It Matters:**
+- Reduces guesswork with real market/technical data
+- Ensures decisions are data-driven, not assumptions
+- Helps choose the right technologies early
+
+**Example:** "Research the task management SaaS market - competitors, pricing, key features"
+
+---
+
+### code-reviewer (Phase 4.5 - Post-Implementation) - MANDATORY
+
+**When Invoked:**
+- ALWAYS after frontend-developer AND backend-engineer complete
+- BEFORE app-security-engineer starts security review
+
+**How It Works:**
+- AI-powered code quality analysis with complexity checks
+- Reviews code for best practices, patterns, and maintainability
+- Identifies code smells, duplication, and refactoring opportunities
+
+**Why It Matters:**
+- Ensures clean code BEFORE security review (easier to audit)
+- Catches code smells and complexity issues early
+- Makes security review more effective by reducing noise
+- Enforces best practices and coding standards
+
+**Critical:** This is NOT optional - it's a mandatory quality gate
+
+---
+
+### security-auditor (Phase 5 - Security Layer) - MANDATORY
+
+**When Invoked:**
+- ALWAYS in parallel with app-security-engineer
+- After code-reviewer completes quality review
+
+**How It Works:**
 - OWASP Top 10 checks & vulnerability scanning
-- Scans code for common security vulnerabilities
-- Checks for SQL injection, XSS, insecure dependencies
-- Provides remediation recommendations
+- Scans dependencies for CVEs and supply chain vulnerabilities
+- Checks for outdated packages and insecure dependencies
 
-**Performance Optimizer**
+**Why It Matters:**
+- **Two-layer security approach:**
+  - app-security-engineer: Application code (OWASP, XSS, SQL injection, auth)
+  - security-auditor: Infrastructure & dependencies (CVEs, supply chain, packages)
+- Comprehensive security coverage from code to infrastructure
+- Catches vulnerabilities that application-level scans miss
+
+**Critical:** Works WITH app-security-engineer for complete security coverage
+
+---
+
+### performance-optimizer (Phase 7 - Post-Deployment) - OPTIONAL
+
+**When Invoked:**
+- User explicitly requests performance optimization
+- QA engineer reports performance issues
+- Application is deployed and user wants tuning
+
+**How It Works:**
 - Lighthouse audits & optimization recommendations
-- Runs Google Lighthouse audits on web applications
-- Identifies performance bottlenecks
+- Runs Google Lighthouse audits on deployed web applications
+- Identifies performance bottlenecks and bundle size issues
+
+**Why It Matters:**
+- Improves Core Web Vitals (LCP, FID, CLS)
+- Reduces bundle sizes and loading times
 - Provides actionable optimization suggestions
+- Can dramatically improve user experience post-launch
 
-**Recovery Agent**
+**Do NOT invoke before deployment** - needs live application URL
+
+---
+
+### recovery (Always Available) - AUTO-INVOKED ON ERRORS
+
+**When Invoked:**
+- ANY agent reports an error
+- Build fails, tests fail, deployment fails
+- ANY unexpected problem occurs
+
+**How It Works:**
 - Pattern-based error recovery system
-- Analyzes errors and suggests recovery strategies
-- Learns from common error patterns
-- Automated retry logic with exponential backoff
+- Checks `recovery-patterns.json` for known error patterns
+- Confidence-based decision making:
+  - If confidence > 80%: Auto-fixes the error
+  - If confidence < 60%: Escalates to stuck agent
+- Learns from common error patterns (npm cache, git conflicts, etc.)
 
-**Code Reviewer**
-- AI-powered code review and quality analysis
-- Reviews code for best practices and patterns
-- Identifies potential bugs and code smells
-- Suggests improvements and refactoring opportunities
+**Why It Matters:**
+- Reduces human escalations for known/common errors
+- Faster recovery from typical development issues
+- Frees you to focus on real decisions, not routine fixes
+- First line of defense before stuck agent
+
+**Example:** "npm install EACCES error" → recovery auto-fixes with cache clean
 
 ### Multi-Project Workspace System
 
@@ -697,13 +823,18 @@ Both examples include:
 
 ## 📊 Project Statistics
 
-- **Total Business Agents**: 12 specialized company agents (CPO to DevOps)
-- **Total Tech Agents**: 8 specialized development agents (Coder, Tester, Researcher, etc.)
+- **Total Agents**: 20 specialized agents (12 Business + 5 DevTools + 3 Core)
+- **Business Process Agents**: 12 (CPO → PM → Marketer → UX → UI → Architect → DBA → Frontend → Backend → AppSec → QA → DevOps)
+- **DevTools Enhancement Agents**: 5 (Researcher, Code Reviewer, Security Auditor, Performance Optimizer, Recovery)
+- **Core Support Agents**: 3 (Coder, Tester, Stuck)
+- **Workflow Phases**: 7 enhanced phases (0 → 1 → 2 → 3 → 4 → 4.5 → 5 → 6 → 7)
+- **Quality Gates**: 3 mandatory (Code Review at 4.5, Two-Layer Security at 5, QA at 5)
 - **Total Files**: 200+ files across the system
+- **Agent Code**: 19,347 lines across all agent definitions
 - **Integration Tests**: 280+ test cases
 - **Benchmarks**: 57 performance benchmarks
-- **Example Projects**: 2 production-ready examples
-- **Deployment Platforms**: 6 supported platforms
+- **Example Projects**: 2 production-ready examples (React Todo, Express API)
+- **Deployment Platforms**: 6 supported platforms (Docker, Vercel, Netlify, Railway, AWS, Kubernetes)
 - **Plugin Examples**: 4 example plugins included
 - **CI/CD Workflows**: 6 GitHub Actions workflows
 - **Documentation**: Comprehensive guides throughout
@@ -753,11 +884,24 @@ Mimics how real startups work:
 git clone https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2.git
 cd claude-code-agents-wizard-v2
 
+# Install all dependencies (OPTIONAL - only if you want to use DevTools/Examples)
+./install-all.sh
+
+# This installs npm dependencies for:
+# - CLI Dashboard
+# - Web Dashboard (Client + Server)
+# - Benchmarks
+# - Changelog Generator
+# - Integration Tests
+# - Example Projects (React Todo, Express API)
+
 # Start Claude Code in this directory
 claude
 ```
 
-That's it! Your entire fake company is ready to go.
+**Note:** The `install-all.sh` script is **optional**. The core 20-agent system works without any npm installs. Only run it if you want to use the monitoring dashboards, benchmarks, or example projects.
+
+That's it! Your entire fake company with 20 agents is ready to go.
 
 ### Starting Your First Project
 
