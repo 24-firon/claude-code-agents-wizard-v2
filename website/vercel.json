@@ -1,0 +1,56 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "regions": ["fra1"],
+  "env": {
+    "NEXT_PUBLIC_SITE_URL": "https://kiagentur.com",
+    "NODE_ENV": "production"
+  },
+  "build": {
+    "env": {
+      "RESEND_API_KEY": "@resend-api-key",
+      "FROM_EMAIL": "@from-email",
+      "ADMIN_EMAIL": "@admin-email",
+      "REPLY_TO_EMAIL": "@reply-to-email",
+      "N8N_WEBHOOK_URL": "@n8n-webhook-url",
+      "CONVERTKIT_API_KEY": "@convertkit-api-key",
+      "CONVERTKIT_FORM_ID": "@convertkit-form-id"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}
