@@ -1,0 +1,129 @@
+{
+  "commitTypes": {
+    "feat": {
+      "label": "Features",
+      "emoji": "✨",
+      "description": "A new feature",
+      "semverBump": "minor"
+    },
+    "fix": {
+      "label": "Bug Fixes",
+      "emoji": "🐛",
+      "description": "A bug fix",
+      "semverBump": "patch"
+    },
+    "docs": {
+      "label": "Documentation",
+      "emoji": "📚",
+      "description": "Documentation only changes",
+      "semverBump": "patch"
+    },
+    "style": {
+      "label": "Styles",
+      "emoji": "💎",
+      "description": "Changes that do not affect the meaning of the code",
+      "semverBump": "patch"
+    },
+    "refactor": {
+      "label": "Code Refactoring",
+      "emoji": "📦",
+      "description": "A code change that neither fixes a bug nor adds a feature",
+      "semverBump": "patch"
+    },
+    "perf": {
+      "label": "Performance Improvements",
+      "emoji": "🚀",
+      "description": "A code change that improves performance",
+      "semverBump": "patch"
+    },
+    "test": {
+      "label": "Tests",
+      "emoji": "🚨",
+      "description": "Adding missing tests or correcting existing tests",
+      "semverBump": "none"
+    },
+    "build": {
+      "label": "Build System",
+      "emoji": "🛠",
+      "description": "Changes that affect the build system or external dependencies",
+      "semverBump": "patch"
+    },
+    "ci": {
+      "label": "Continuous Integration",
+      "emoji": "⚙️",
+      "description": "Changes to our CI configuration files and scripts",
+      "semverBump": "none"
+    },
+    "chore": {
+      "label": "Chores",
+      "emoji": "♻️",
+      "description": "Other changes that don't modify src or test files",
+      "semverBump": "none"
+    },
+    "revert": {
+      "label": "Reverts",
+      "emoji": "🗑",
+      "description": "Reverts a previous commit",
+      "semverBump": "patch"
+    }
+  },
+  "categoryOrder": [
+    "feat",
+    "fix",
+    "perf",
+    "refactor",
+    "docs",
+    "style",
+    "test",
+    "build",
+    "ci",
+    "chore",
+    "revert"
+  ],
+  "breakingChangeKeywords": [
+    "BREAKING CHANGE",
+    "BREAKING CHANGES",
+    "BREAKING-CHANGE",
+    "BREAKING-CHANGES"
+  ],
+  "linkFormats": {
+    "commit": "https://github.com/{owner}/{repo}/commit/{hash}",
+    "issue": "https://github.com/{owner}/{repo}/issues/{id}",
+    "pr": "https://github.com/{owner}/{repo}/pull/{id}",
+    "compare": "https://github.com/{owner}/{repo}/compare/{from}...{to}"
+  },
+  "excludedScopes": [
+    "deps",
+    "deps-dev",
+    "release"
+  ],
+  "template": {
+    "includeEmojis": true,
+    "groupByScope": false,
+    "showAuthor": true,
+    "showCommitHash": true,
+    "hashLength": 7,
+    "includeDate": true,
+    "dateFormat": "YYYY-MM-DD"
+  },
+  "github": {
+    "enabled": true,
+    "includePRInfo": true,
+    "includeIssueInfo": true,
+    "includeContributors": true
+  },
+  "semver": {
+    "defaultBump": "patch",
+    "prerelease": {
+      "enabled": false,
+      "identifier": "beta"
+    }
+  },
+  "changelog": {
+    "maxCommitsPerCategory": null,
+    "includeUnreleased": true,
+    "outputFile": "CHANGELOG.md",
+    "headerTitle": "Changelog",
+    "headerDescription": "All notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+  }
+}

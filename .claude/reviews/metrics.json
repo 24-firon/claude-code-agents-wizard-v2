@@ -1,0 +1,87 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-18T00:00:00Z",
+  "totalReviews": 0,
+  "filesReviewed": 0,
+  "linesReviewed": 0,
+
+  "issuesBySeverity": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+
+  "issuesByCategory": {
+    "security-vulnerability": 0,
+    "performance-issue": 0,
+    "code-smell": 0,
+    "best-practice-violation": 0,
+    "error-handling": 0,
+    "type-safety": 0,
+    "documentation": 0,
+    "testing": 0,
+    "architecture": 0
+  },
+
+  "codeQualityScores": {
+    "current": 0,
+    "average": 0,
+    "best": 0,
+    "worst": 0,
+    "trend": "stable"
+  },
+
+  "complexityMetrics": {
+    "averageCyclomaticComplexity": 0,
+    "maxCyclomaticComplexity": 0,
+    "averageFunctionLength": 0,
+    "averageClassLength": 0,
+    "averageParameterCount": 0,
+    "averageNestingDepth": 0
+  },
+
+  "securityMetrics": {
+    "securityScore": 0,
+    "vulnerabilitiesFound": 0,
+    "vulnerabilitiesFixed": 0,
+    "criticalVulnerabilities": 0,
+    "highVulnerabilities": 0
+  },
+
+  "performanceMetrics": {
+    "performanceScore": 0,
+    "performanceIssuesFound": 0,
+    "performanceIssuesFixed": 0,
+    "averageOptimizationGain": 0
+  },
+
+  "testingMetrics": {
+    "testCoverage": 0,
+    "testableCodePercentage": 0,
+    "untestableFiles": []
+  },
+
+  "trends": {
+    "issuesFixed": 0,
+    "issuesIntroduced": 0,
+    "codeQualityTrend": "stable",
+    "securityTrend": "stable",
+    "performanceTrend": "stable"
+  },
+
+  "reviews": [],
+
+  "topIssues": [],
+
+  "languageBreakdown": {},
+
+  "fileHotspots": [],
+
+  "notes": [
+    "This file tracks code review metrics over time",
+    "Metrics are automatically updated when reviews are conducted",
+    "Use this data to identify trends and improvement opportunities"
+  ]
+}

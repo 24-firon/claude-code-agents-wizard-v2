@@ -1,0 +1,56 @@
+{
+  "name": "git-analyzer-plugin",
+  "version": "1.0.0",
+  "description": "Analyze Git repositories for insights, metrics, and code quality",
+  "author": "Claude Code Team",
+  "license": "MIT",
+  "main": "index.js",
+  "agents": [
+    {
+      "name": "git-insights",
+      "description": "Agent for analyzing Git repository insights",
+      "file": "agents/git-insights.md",
+      "enabled": true
+    }
+  ],
+  "tools": [
+    {
+      "name": "git-analyze",
+      "description": "Analyze Git repository",
+      "handler": "analyzeRepository"
+    },
+    {
+      "name": "git-contributors",
+      "description": "Get repository contributors",
+      "handler": "getContributors"
+    }
+  ],
+  "hooks": {},
+  "permissions": [
+    "filesystem:read",
+    "process:spawn",
+    "tools:register",
+    "agents:register",
+    "storage:persistent",
+    "events:emit",
+    "config:read"
+  ],
+  "dependencies": {
+    "npm": {
+      "simple-git": "^3.20.0"
+    }
+  },
+  "config": {
+    "defaultRepo": ".",
+    "cacheResults": true,
+    "cacheTtl": 3600000,
+    "includeFileStats": true,
+    "maxCommitHistory": 1000
+  },
+  "enabled": true,
+  "autoload": true,
+  "priority": 0,
+  "tags": ["git", "analytics", "code-quality", "metrics"],
+  "keywords": ["git", "analytics", "insights", "metrics", "repository"],
+  "documentation": "README.md"
+}

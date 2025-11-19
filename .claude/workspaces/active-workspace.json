@@ -1,0 +1,20 @@
+{
+  "$schema": "https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2/schema/active-workspace",
+  "version": "1.0.0",
+  "currentWorkspace": "default-project",
+  "lastSwitched": "2025-11-18T22:00:00.000Z",
+  "previousWorkspace": null,
+  "switchHistory": [
+    {
+      "from": null,
+      "to": "default-project",
+      "timestamp": "2025-11-18T22:00:00.000Z",
+      "reason": "initial_setup"
+    }
+  ],
+  "stats": {
+    "totalSwitches": 0,
+    "sessionStart": "2025-11-18T22:00:00.000Z",
+    "totalSessionTime": 0
+  }
+}

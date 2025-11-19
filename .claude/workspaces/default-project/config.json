@@ -1,0 +1,78 @@
+{
+  "$schema": "https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2/schema/workspace-config",
+  "name": "default-project",
+  "displayName": "Default Project",
+  "description": "Default workspace for general development and prototyping. This workspace is backwards-compatible with the original single-project system.",
+  "created": "2025-11-18T22:00:00.000Z",
+  "lastModified": "2025-11-18T22:00:00.000Z",
+  "version": "1.0.0",
+  "type": "general",
+  "repository": {
+    "type": "git",
+    "url": "",
+    "branch": "main"
+  },
+  "enabledAgents": [
+    "coder",
+    "tester",
+    "stuck"
+  ],
+  "agentConfig": {
+    "coder": {
+      "defaultLanguage": "javascript",
+      "lintingEnabled": false,
+      "formattingEnabled": false,
+      "autoImportEnabled": true,
+      "strictTypeChecking": false,
+      "frameworks": [],
+      "packageManager": "npm"
+    },
+    "tester": {
+      "defaultBrowser": "chromium",
+      "screenshotOnFailure": true,
+      "videoOnFailure": false,
+      "headless": true,
+      "slowMo": 0,
+      "testTimeout": 30000,
+      "navigationTimeout": 10000,
+      "screenshotPath": ".claude/screenshots/default-project"
+    }
+  },
+  "settings": {
+    "autoArchive": false,
+    "maxCompletedTodos": 100,
+    "archiveAfterDays": 30,
+    "defaultPriority": "normal",
+    "requireAssignment": false,
+    "enableTodoReminders": false,
+    "enableProgressTracking": true,
+    "enableTimeTracking": false
+  },
+  "environment": {
+    "nodejs": "latest",
+    "npm": "latest"
+  },
+  "paths": {
+    "root": ".",
+    "src": "./src",
+    "tests": "./tests",
+    "docs": "./docs"
+  },
+  "tags": ["default", "general", "prototype"],
+  "team": {
+    "owner": "",
+    "contributors": [],
+    "reviewers": []
+  },
+  "integrations": {
+    "ci": false,
+    "deployment": false,
+    "monitoring": false,
+    "analytics": false
+  },
+  "persistence": {
+    "useSharedPersistence": true,
+    "persistencePath": "../../persistence/default-project"
+  },
+  "notes": "This is the default workspace that maintains backwards compatibility with the original system. Todos are stored in .claude/persistence/default-project/"
+}

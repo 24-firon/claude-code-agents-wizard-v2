@@ -1,0 +1,181 @@
+{
+  "schema_version": "1.0.0",
+  "first_session_date": "2025-11-01",
+  "last_session_date": "2025-11-18",
+  "last_updated": "2025-11-18T15:05:00.000Z",
+  "total_sessions": 42,
+  "totals": {
+    "todos_created": 245,
+    "todos_completed": 212,
+    "todos_blocked": 8,
+    "coder_invocations": 268,
+    "tester_invocations": 230,
+    "stuck_invocations": 38,
+    "total_duration_hours": 52.3,
+    "total_tokens_estimated": 5240000
+  },
+  "averages": {
+    "todos_per_session": 5.83,
+    "completion_rate": 86.53,
+    "session_duration_minutes": 74.71,
+    "task_completion_time_minutes": 11.2,
+    "tokens_per_session": 124762
+  },
+  "success_rates": {
+    "overall_completion_rate": 86.53,
+    "coder_success_rate": 87.31,
+    "tester_success_rate": 85.22,
+    "first_time_success_rate": 78.36
+  },
+  "all_time_top_stuck_reasons": [
+    {
+      "reason_category": "test_failure",
+      "total_count": 14,
+      "percentage_of_all_stuck": 36.84
+    },
+    {
+      "reason_category": "dependency_issue",
+      "total_count": 10,
+      "percentage_of_all_stuck": 26.32
+    },
+    {
+      "reason_category": "clarification_needed",
+      "total_count": 7,
+      "percentage_of_all_stuck": 18.42
+    },
+    {
+      "reason_category": "implementation_error",
+      "total_count": 4,
+      "percentage_of_all_stuck": 10.53
+    },
+    {
+      "reason_category": "environment_issue",
+      "total_count": 2,
+      "percentage_of_all_stuck": 5.26
+    },
+    {
+      "reason_category": "timeout",
+      "total_count": 1,
+      "percentage_of_all_stuck": 2.63
+    }
+  ],
+  "milestones": {
+    "total_todos_completed": 212,
+    "total_sessions_completed": 42,
+    "longest_session_hours": 3.2,
+    "shortest_session_minutes": 18,
+    "best_completion_rate": 100.0,
+    "most_productive_day": {
+      "date": "2025-11-15",
+      "todos_completed": 18,
+      "sessions": 3
+    },
+    "longest_streak_days": 7,
+    "perfect_sessions": 15,
+    "zero_stuck_sessions": 18
+  },
+  "trends": {
+    "monthly_completion_rates": [
+      {
+        "month": "2025-11",
+        "completion_rate": 86.53,
+        "sessions": 42,
+        "todos_completed": 212
+      }
+    ],
+    "weekly_progression": [
+      {
+        "week": "2025-W44",
+        "completion_rate": 82.5,
+        "todos_completed": 48
+      },
+      {
+        "week": "2025-W45",
+        "completion_rate": 84.2,
+        "todos_completed": 56
+      },
+      {
+        "week": "2025-W46",
+        "completion_rate": 88.1,
+        "todos_completed": 64
+      },
+      {
+        "week": "2025-W47",
+        "completion_rate": 85.7,
+        "todos_completed": 24
+      }
+    ],
+    "improvement_trajectory": "improving",
+    "stuck_rate_trend": "declining",
+    "productivity_trend": "improving"
+  },
+  "agent_performance_all_time": {
+    "coder": {
+      "total_invocations": 268,
+      "success_rate": 87.31,
+      "average_duration_seconds": 298,
+      "total_hours": 22.27,
+      "most_common_failure": "dependency_issue"
+    },
+    "tester": {
+      "total_invocations": 230,
+      "success_rate": 85.22,
+      "average_duration_seconds": 142,
+      "total_hours": 9.07,
+      "most_common_failure": "test_failure"
+    },
+    "stuck": {
+      "total_invocations": 38,
+      "success_rate": 100.0,
+      "average_duration_seconds": 387,
+      "total_hours": 4.08,
+      "average_resolution_time_minutes": 6.45
+    }
+  },
+  "workspace_statistics": {
+    "total_unique_workspaces": 28,
+    "most_worked_on": {
+      "workspace_name": "react-todo-app",
+      "sessions": 3,
+      "todos_completed": 15
+    },
+    "highest_completion_rate": {
+      "workspace_name": "express-api-server",
+      "completion_rate": 100.0,
+      "sessions": 1
+    },
+    "average_todos_per_workspace": 7.57
+  },
+  "efficiency_metrics": {
+    "average_tasks_per_hour": 4.05,
+    "peak_productivity_hour": 14,
+    "peak_productivity_day": "Tuesday",
+    "average_stuck_resolution_time_minutes": 6.45,
+    "rework_rate": 14.23,
+    "context_window_usage_average": 19.8
+  },
+  "quality_indicators": {
+    "test_pass_rate_all_time": 85.22,
+    "first_attempt_success_rate": 78.36,
+    "zero_defect_sessions": 15,
+    "high_quality_sessions_percentage": 35.71,
+    "average_attempts_per_todo": 1.26
+  },
+  "system_insights": {
+    "most_challenging_task_types": [
+      "state management implementation",
+      "authentication setup",
+      "database migration"
+    ],
+    "most_reliable_patterns": [
+      "REST API endpoints",
+      "basic CRUD operations",
+      "UI component creation"
+    ],
+    "recommended_improvements": [
+      "Pre-check dependencies before starting todos",
+      "Add more specific test scenarios",
+      "Improve error message clarity"
+    ]
+  }
+}

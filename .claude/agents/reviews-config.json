@@ -1,0 +1,606 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "description": "Configuration for AI-powered code review agent",
+
+  "globalSettings": {
+    "enabled": true,
+    "autoReview": false,
+    "saveReports": true,
+    "reportsDirectory": ".claude/reviews",
+    "includePositiveHighlights": true,
+    "generateMetrics": true,
+    "trackHistory": true,
+    "defaultSeverityThreshold": "MEDIUM",
+    "maxIssuesPerReport": 100,
+    "includeCodeExamples": true,
+    "includeLearningResources": true
+  },
+
+  "severityThresholds": {
+    "critical": {
+      "blockMerge": true,
+      "requireHumanReview": true,
+      "notifyStuckAgent": true,
+      "categories": [
+        "security-vulnerability",
+        "data-loss-risk",
+        "crash-causing-bug",
+        "critical-performance",
+        "major-architectural-flaw"
+      ]
+    },
+    "high": {
+      "blockMerge": true,
+      "requireHumanReview": false,
+      "notifyStuckAgent": false,
+      "categories": [
+        "code-smell-major",
+        "security-concern",
+        "performance-issue",
+        "best-practice-violation",
+        "missing-error-handling"
+      ]
+    },
+    "medium": {
+      "blockMerge": false,
+      "requireHumanReview": false,
+      "notifyStuckAgent": false,
+      "categories": [
+        "code-smell-minor",
+        "readability-issue",
+        "missing-documentation",
+        "style-inconsistency"
+      ]
+    },
+    "low": {
+      "blockMerge": false,
+      "requireHumanReview": false,
+      "notifyStuckAgent": false,
+      "categories": [
+        "naming-improvement",
+        "organization-suggestion",
+        "optional-optimization"
+      ]
+    },
+    "info": {
+      "blockMerge": false,
+      "requireHumanReview": false,
+      "notifyStuckAgent": false,
+      "categories": [
+        "learning-opportunity",
+        "alternative-approach",
+        "best-practice-tip"
+      ]
+    }
+  },
+
+  "complexityThresholds": {
+    "cyclomaticComplexity": {
+      "excellent": 5,
+      "good": 10,
+      "fair": 15,
+      "poor": 20,
+      "critical": 30
+    },
+    "functionLength": {
+      "excellent": 20,
+      "good": 50,
+      "fair": 100,
+      "poor": 200,
+      "critical": 300
+    },
+    "classLength": {
+      "excellent": 100,
+      "good": 300,
+      "fair": 500,
+      "poor": 800,
+      "critical": 1000
+    },
+    "parameterCount": {
+      "excellent": 2,
+      "good": 4,
+      "fair": 6,
+      "poor": 8,
+      "critical": 10
+    },
+    "nestingDepth": {
+      "excellent": 2,
+      "good": 3,
+      "fair": 4,
+      "poor": 5,
+      "critical": 6
+    }
+  },
+
+  "languageRules": {
+    "javascript": {
+      "enabled": true,
+      "linter": "eslint",
+      "rules": {
+        "no-var": "error",
+        "prefer-const": "error",
+        "no-console": "warn",
+        "no-eval": "error",
+        "no-implied-eval": "error",
+        "eqeqeq": "error",
+        "no-unused-vars": "error",
+        "no-magic-numbers": "warn",
+        "complexity": ["warn", 10],
+        "max-depth": ["warn", 4],
+        "max-lines-per-function": ["warn", 50],
+        "max-params": ["warn", 4]
+      },
+      "customPatterns": [
+        {
+          "pattern": "console\\.log|console\\.debug",
+          "severity": "MEDIUM",
+          "message": "Remove console.log statements before production",
+          "category": "debugging-code"
+        },
+        {
+          "pattern": "debugger",
+          "severity": "HIGH",
+          "message": "Remove debugger statements",
+          "category": "debugging-code"
+        },
+        {
+          "pattern": "TODO|FIXME|HACK|XXX",
+          "severity": "LOW",
+          "message": "Resolve TODO/FIXME comments",
+          "category": "technical-debt"
+        }
+      ]
+    },
+
+    "typescript": {
+      "enabled": true,
+      "linter": "eslint",
+      "rules": {
+        "no-any": "error",
+        "explicit-function-return-type": "warn",
+        "no-explicit-any": "error",
+        "strict-null-checks": "error",
+        "no-non-null-assertion": "warn",
+        "prefer-readonly": "warn",
+        "no-floating-promises": "error"
+      },
+      "customPatterns": [
+        {
+          "pattern": ":\\s*any",
+          "severity": "HIGH",
+          "message": "Avoid using 'any' type - use specific types instead",
+          "category": "type-safety"
+        },
+        {
+          "pattern": "@ts-ignore|@ts-expect-error",
+          "severity": "MEDIUM",
+          "message": "TypeScript error suppression should be avoided",
+          "category": "type-safety"
+        }
+      ]
+    },
+
+    "python": {
+      "enabled": true,
+      "linter": "pylint",
+      "rules": {
+        "pep8-naming": "error",
+        "missing-docstring": "warn",
+        "line-too-long": "warn",
+        "too-many-arguments": "warn",
+        "too-many-locals": "warn",
+        "too-many-branches": "warn",
+        "too-many-statements": "warn"
+      },
+      "customPatterns": [
+        {
+          "pattern": "^def [^:]+\\):[^\\n]*$",
+          "severity": "MEDIUM",
+          "message": "Add type hints to function signatures",
+          "category": "type-safety"
+        },
+        {
+          "pattern": "except:\\s*$",
+          "severity": "HIGH",
+          "message": "Avoid bare except clauses - catch specific exceptions",
+          "category": "error-handling"
+        },
+        {
+          "pattern": "print\\(",
+          "severity": "LOW",
+          "message": "Use logging instead of print statements",
+          "category": "debugging-code"
+        }
+      ]
+    },
+
+    "go": {
+      "enabled": true,
+      "linter": "golint",
+      "rules": {
+        "error-handling": "error",
+        "exported-documentation": "warn",
+        "package-comments": "warn",
+        "error-strings": "warn"
+      },
+      "customPatterns": [
+        {
+          "pattern": "err\\s*:=.*\\n\\s*if\\s+err\\s*!=\\s*nil",
+          "severity": "INFO",
+          "message": "Proper error handling pattern",
+          "category": "best-practice",
+          "isPositive": true
+        },
+        {
+          "pattern": "_\\s*=.*err",
+          "severity": "CRITICAL",
+          "message": "Error is ignored - handle or return errors",
+          "category": "error-handling"
+        }
+      ]
+    },
+
+    "rust": {
+      "enabled": true,
+      "linter": "clippy",
+      "rules": {
+        "unwrap-used": "warn",
+        "expect-used": "warn",
+        "clone-on-copy": "warn",
+        "unnecessary-unwrap": "error"
+      },
+      "customPatterns": [
+        {
+          "pattern": "\\.unwrap\\(\\)",
+          "severity": "MEDIUM",
+          "message": "Avoid unwrap() - use proper error handling with ? or match",
+          "category": "error-handling"
+        },
+        {
+          "pattern": "unsafe\\s*\\{",
+          "severity": "HIGH",
+          "message": "Unsafe code detected - ensure it's necessary and well-documented",
+          "category": "safety"
+        }
+      ]
+    },
+
+    "java": {
+      "enabled": true,
+      "linter": "checkstyle",
+      "rules": {
+        "unused-imports": "warn",
+        "magic-numbers": "warn",
+        "method-length": "warn",
+        "parameter-number": "warn"
+      },
+      "customPatterns": [
+        {
+          "pattern": "System\\.out\\.println",
+          "severity": "MEDIUM",
+          "message": "Use proper logging framework instead of System.out.println",
+          "category": "debugging-code"
+        },
+        {
+          "pattern": "catch\\s*\\(\\s*Exception\\s+",
+          "severity": "MEDIUM",
+          "message": "Catch specific exceptions instead of generic Exception",
+          "category": "error-handling"
+        }
+      ]
+    }
+  },
+
+  "codeSmellPatterns": {
+    "longMethod": {
+      "enabled": true,
+      "threshold": 50,
+      "severity": "MEDIUM",
+      "message": "Method/function exceeds {threshold} lines - consider breaking it down"
+    },
+    "longParameterList": {
+      "enabled": true,
+      "threshold": 4,
+      "severity": "MEDIUM",
+      "message": "Parameter list exceeds {threshold} parameters - consider using object parameter"
+    },
+    "deepNesting": {
+      "enabled": true,
+      "threshold": 4,
+      "severity": "MEDIUM",
+      "message": "Nesting depth exceeds {threshold} levels - consider refactoring"
+    },
+    "godClass": {
+      "enabled": true,
+      "threshold": 500,
+      "severity": "HIGH",
+      "message": "Class exceeds {threshold} lines - likely has too many responsibilities"
+    },
+    "duplicatedCode": {
+      "enabled": true,
+      "minimumTokens": 50,
+      "severity": "MEDIUM",
+      "message": "Duplicated code detected - consider extracting to shared function"
+    },
+    "magicNumbers": {
+      "enabled": true,
+      "severity": "LOW",
+      "message": "Magic number detected - consider using named constant",
+      "exceptions": [0, 1, -1, 2]
+    },
+    "deadCode": {
+      "enabled": true,
+      "severity": "MEDIUM",
+      "message": "Unused or unreachable code detected - remove to improve maintainability"
+    },
+    "commentedCode": {
+      "enabled": true,
+      "severity": "LOW",
+      "message": "Commented-out code detected - remove if not needed or use version control"
+    }
+  },
+
+  "securityPatterns": {
+    "sqlInjection": {
+      "enabled": true,
+      "patterns": [
+        "query\\(.*\\+.*\\)",
+        "execute\\(.*\\+.*\\)",
+        "SELECT.*\\+.*FROM"
+      ],
+      "severity": "CRITICAL",
+      "message": "Potential SQL injection - use parameterized queries"
+    },
+    "xss": {
+      "enabled": true,
+      "patterns": [
+        "innerHTML\\s*=",
+        "dangerouslySetInnerHTML",
+        "document\\.write\\("
+      ],
+      "severity": "HIGH",
+      "message": "Potential XSS vulnerability - sanitize user input"
+    },
+    "hardcodedSecrets": {
+      "enabled": true,
+      "patterns": [
+        "password\\s*=\\s*['\"](?!\\$|\\{)[^'\"]+['\"]",
+        "api_key\\s*=\\s*['\"](?!\\$|\\{)[^'\"]+['\"]",
+        "secret\\s*=\\s*['\"](?!\\$|\\{)[^'\"]+['\"]",
+        "token\\s*=\\s*['\"](?!\\$|\\{)[^'\"]+['\"]"
+      ],
+      "severity": "CRITICAL",
+      "message": "Hardcoded secret detected - use environment variables"
+    },
+    "insecureRandom": {
+      "enabled": true,
+      "patterns": [
+        "Math\\.random\\(\\)",
+        "random\\.randint\\("
+      ],
+      "severity": "HIGH",
+      "message": "Insecure random number generation - use cryptographically secure random"
+    },
+    "evalUsage": {
+      "enabled": true,
+      "patterns": [
+        "eval\\(",
+        "exec\\(",
+        "Function\\("
+      ],
+      "severity": "CRITICAL",
+      "message": "Dangerous eval/exec usage - avoid executing dynamic code"
+    }
+  },
+
+  "performancePatterns": {
+    "inefficientLoop": {
+      "enabled": true,
+      "patterns": [
+        "for.*in.*\\{[\\s\\S]*?query\\(",
+        "forEach.*\\{[\\s\\S]*?await.*query\\("
+      ],
+      "severity": "HIGH",
+      "message": "Potential N+1 query problem - consider batch operations"
+    },
+    "missingCache": {
+      "enabled": true,
+      "patterns": [
+        "expensive.*computation",
+        "API.*call.*loop"
+      ],
+      "severity": "MEDIUM",
+      "message": "Consider caching for expensive operations"
+    },
+    "synchronousOperation": {
+      "enabled": true,
+      "patterns": [
+        "fs\\.readFileSync",
+        "fs\\.writeFileSync"
+      ],
+      "severity": "MEDIUM",
+      "message": "Synchronous file operation - consider using async version"
+    }
+  },
+
+  "bestPracticePatterns": {
+    "missingErrorHandling": {
+      "enabled": true,
+      "patterns": [
+        "async function[^{]+\\{(?!.*try)",
+        "await.*(?!.*catch)"
+      ],
+      "severity": "HIGH",
+      "message": "Missing error handling for async operation"
+    },
+    "missingInputValidation": {
+      "enabled": true,
+      "severity": "HIGH",
+      "message": "User input should be validated before use"
+    },
+    "poorNaming": {
+      "enabled": true,
+      "patterns": [
+        "\\b[a-z]\\b",
+        "\\btemp\\b",
+        "\\bdata\\b",
+        "\\binfo\\b",
+        "\\btmp\\b"
+      ],
+      "severity": "LOW",
+      "message": "Use descriptive variable names"
+    }
+  },
+
+  "ignorePatterns": {
+    "files": [
+      "**/*.min.js",
+      "**/*.bundle.js",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.next/**",
+      "**/coverage/**",
+      "**/__pycache__/**",
+      "**/*.pyc",
+      "**/vendor/**",
+      "**/target/**"
+    ],
+    "directories": [
+      "node_modules",
+      "dist",
+      "build",
+      ".next",
+      "coverage",
+      "__pycache__",
+      "vendor",
+      "target",
+      ".git"
+    ],
+    "patterns": [
+      "test",
+      "spec",
+      "mock",
+      "fixture",
+      "generated"
+    ]
+  },
+
+  "reportTemplates": {
+    "full": {
+      "enabled": true,
+      "sections": [
+        "executive-summary",
+        "critical-issues",
+        "high-priority",
+        "medium-priority",
+        "low-priority",
+        "informational",
+        "code-metrics",
+        "architecture-review",
+        "performance-observations",
+        "security-review",
+        "testing-testability",
+        "language-specific",
+        "positive-highlights",
+        "action-items",
+        "learning-resources",
+        "review-comparison",
+        "conclusion"
+      ]
+    },
+    "summary": {
+      "enabled": true,
+      "sections": [
+        "executive-summary",
+        "critical-issues",
+        "high-priority",
+        "action-items"
+      ]
+    },
+    "security-only": {
+      "enabled": true,
+      "sections": [
+        "executive-summary",
+        "critical-issues",
+        "security-review",
+        "action-items"
+      ]
+    },
+    "performance-only": {
+      "enabled": true,
+      "sections": [
+        "executive-summary",
+        "performance-observations",
+        "code-metrics",
+        "action-items"
+      ]
+    }
+  },
+
+  "integrationSettings": {
+    "git": {
+      "enabled": true,
+      "reviewPRsOnly": false,
+      "compareAgainstBranch": "main",
+      "includeCommitHistory": true
+    },
+    "ci": {
+      "enabled": false,
+      "failOnCritical": true,
+      "failOnHigh": false,
+      "generateJSONReport": true,
+      "generateBadges": true
+    },
+    "notifications": {
+      "enabled": false,
+      "channels": ["slack", "email"],
+      "notifyOnCritical": true,
+      "notifyOnHigh": false
+    }
+  },
+
+  "metrics": {
+    "enabled": true,
+    "trackOverTime": true,
+    "calculateTrends": true,
+    "metricsToTrack": [
+      "issues-per-severity",
+      "code-quality-score",
+      "complexity-average",
+      "test-coverage",
+      "security-score",
+      "performance-score",
+      "issues-fixed",
+      "issues-introduced",
+      "review-count",
+      "files-reviewed",
+      "lines-reviewed"
+    ],
+    "saveLocation": ".claude/reviews/metrics.json"
+  },
+
+  "aiSettings": {
+    "model": "opus",
+    "useAdvancedAnalysis": true,
+    "generateExplanations": true,
+    "includeCodeExamples": true,
+    "suggestRefactoring": true,
+    "provideResources": true,
+    "confidenceThreshold": 0.7,
+    "maxTokensPerIssue": 500
+  },
+
+  "customRules": {
+    "example-rule-1": {
+      "enabled": false,
+      "name": "Custom Pattern Example",
+      "pattern": "your-regex-pattern",
+      "severity": "MEDIUM",
+      "message": "Your custom message",
+      "category": "custom",
+      "languages": ["javascript", "typescript"]
+    }
+  }
+}

@@ -1,0 +1,805 @@
+name: Validate Agent Definitions
+
+# =============================================================================
+# Comprehensive agent validation workflow with documentation generation,
+# compatibility matrix, duplicate detection, and markdown rendering tests
+# =============================================================================
+
+on:
+  push:
+    paths:
+      - '.claude/agents/**'
+      - '.github/workflows/validate-agents.yml'
+  pull_request:
+    paths:
+      - '.claude/agents/**'
+  workflow_dispatch:
+
+jobs:
+  # ===========================================================================
+  # COMPREHENSIVE AGENT VALIDATION
+  # Validates all agent definition files for correctness
+  # ===========================================================================
+  validate-agents:
+    name: Validate Agent Configuration Files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-agent-validation
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Comprehensive agent validation
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import sys
+          import yaml
+          import re
+
+          # Configuration
+          AGENTS_DIR = ".claude/agents"
+          VALID_MODELS = ["sonnet", "opus", "haiku"]
+          VALID_TOOLS = [
+              "Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task",
+              "AskUserQuestion", "TodoWrite", "TodoRead"
+          ]
+          REQUIRED_FIELDS = ["name", "description", "tools", "model"]
+
+          # Validation results
+          errors = []
+          warnings = []
+          agent_count = 0
+
+          print("=" * 70)
+          print("AGENT DEFINITION VALIDATION")
+          print("=" * 70)
+
+          if not os.path.exists(AGENTS_DIR):
+              print(f"\n❌ ERROR: Agents directory not found: {AGENTS_DIR}")
+              sys.exit(1)
+
+          md_files = sorted([f for f in os.listdir(AGENTS_DIR) if f.endswith('.md')])
+
+          if not md_files:
+              print(f"\n⚠️  WARNING: No agent markdown files found in {AGENTS_DIR}")
+              sys.exit(0)
+
+          print(f"\nFound {len(md_files)} agent file(s)")
+          print()
+
+          for filename in md_files:
+              filepath = os.path.join(AGENTS_DIR, filename)
+              agent_count += 1
+
+              print(f"\n{'─' * 70}")
+              print(f"Validating: {filename}")
+              print(f"{'─' * 70}")
+
+              with open(filepath, 'r') as f:
+                  content = f.read()
+
+              # 1. Extract and validate YAML frontmatter exists
+              frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+
+              if not frontmatter_match:
+                  error_msg = f"{filename}: No YAML frontmatter found"
+                  errors.append(error_msg)
+                  print(f"❌ {error_msg}")
+                  continue
+
+              frontmatter_text = frontmatter_match.group(1)
+
+              # 2. Parse YAML syntax
+              try:
+                  frontmatter = yaml.safe_load(frontmatter_text)
+                  print("✓ Valid YAML syntax")
+              except yaml.YAMLError as e:
+                  error_msg = f"{filename}: Invalid YAML syntax - {e}"
+                  errors.append(error_msg)
+                  print(f"❌ {error_msg}")
+                  continue
+
+              # 3. Validate required fields exist
+              missing_fields = [field for field in REQUIRED_FIELDS if field not in frontmatter]
+              if missing_fields:
+                  error_msg = f"{filename}: Missing required fields: {', '.join(missing_fields)}"
+                  errors.append(error_msg)
+                  print(f"❌ {error_msg}")
+                  continue
+
+              print(f"✓ All required fields present: {', '.join(REQUIRED_FIELDS)}")
+
+              # 4. Validate 'name' field
+              name = frontmatter.get('name', '')
+              if not isinstance(name, str) or not name.strip():
+                  error_msg = f"{filename}: 'name' must be a non-empty string"
+                  errors.append(error_msg)
+                  print(f"❌ {error_msg}")
+              else:
+                  print(f"✓ Name: '{name}'")
+
+              # 5. Validate 'description' field
+              description = frontmatter.get('description', '')
+              if not isinstance(description, str) or not description.strip():
+                  error_msg = f"{filename}: 'description' must be a non-empty string"
+                  errors.append(error_msg)
+                  print(f"❌ {error_msg}")
+              elif len(description) < 20:
+                  warning_msg = f"{filename}: Description is very short ({len(description)} chars) - consider adding more detail"
+                  warnings.append(warning_msg)
+                  print(f"⚠️  {warning_msg}")
+              else:
+                  print(f"✓ Description: '{description[:60]}...' ({len(description)} chars)")
+
+              # 6. Validate 'tools' field
+              tools = frontmatter.get('tools')
+              if not tools:
+                  error_msg = f"{filename}: 'tools' field is empty or missing"
+                  errors.append(error_msg)
+                  print(f"❌ {error_msg}")
+              else:
+                  # Handle both string (comma-separated) and list formats
+                  if isinstance(tools, str):
+                      tools_list = [t.strip() for t in tools.split(',')]
+                  elif isinstance(tools, list):
+                      tools_list = tools
+                  else:
+                      error_msg = f"{filename}: 'tools' must be a string or list"
+                      errors.append(error_msg)
+                      print(f"❌ {error_msg}")
+                      tools_list = []
+
+                  if tools_list:
+                      # Check for invalid tools
+                      invalid_tools = [t for t in tools_list if t not in VALID_TOOLS]
+                      if invalid_tools:
+                          error_msg = f"{filename}: Invalid tools: {', '.join(invalid_tools)}"
+                          errors.append(error_msg)
+                          print(f"❌ {error_msg}")
+                          print(f"   Valid tools: {', '.join(VALID_TOOLS)}")
+                      else:
+                          print(f"✓ Tools: {', '.join(tools_list)}")
+
+              # 7. Validate 'model' field
+              model = frontmatter.get('model', '')
+              if not model:
+                  error_msg = f"{filename}: 'model' field is empty or missing"
+                  errors.append(error_msg)
+                  print(f"❌ {error_msg}")
+              elif model not in VALID_MODELS:
+                  error_msg = f"{filename}: Invalid model '{model}' (valid: {', '.join(VALID_MODELS)})"
+                  errors.append(error_msg)
+                  print(f"❌ {error_msg}")
+              else:
+                  print(f"✓ Model: {model}")
+
+              # 8. Check formatting consistency
+              if not content.startswith('---'):
+                  warning_msg = f"{filename}: Frontmatter should be at the beginning of the file"
+                  warnings.append(warning_msg)
+                  print(f"⚠️  {warning_msg}")
+
+              # Check if there's content after frontmatter
+              body = content[frontmatter_match.end():]
+              if not body.strip():
+                  warning_msg = f"{filename}: No content after frontmatter"
+                  warnings.append(warning_msg)
+                  print(f"⚠️  {warning_msg}")
+              else:
+                  print(f"✓ Agent documentation present ({len(body)} chars)")
+
+          # Summary
+          print()
+          print("=" * 70)
+          print("VALIDATION SUMMARY")
+          print("=" * 70)
+          print(f"Agents validated: {agent_count}")
+          print(f"Errors: {len(errors)}")
+          print(f"Warnings: {len(warnings)}")
+
+          if errors:
+              print()
+              print("ERRORS:")
+              for error in errors:
+                  print(f"  ❌ {error}")
+
+          if warnings:
+              print()
+              print("WARNINGS:")
+              for warning in warnings:
+                  print(f"  ⚠️  {warning}")
+
+          print("=" * 70)
+
+          if errors:
+              print()
+              print("❌ VALIDATION FAILED - Fix errors above")
+              sys.exit(1)
+          else:
+              print()
+              print("✅ VALIDATION PASSED - All agent definitions are valid!")
+              sys.exit(0)
+          PYTHON_SCRIPT
+
+      - name: Upload validation report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-validation-report-${{ github.run_id }}
+          path: |
+            .claude/agents/*.md
+          retention-days: 7
+
+  # ===========================================================================
+  # CHECK DUPLICATE AGENTS
+  # Detects if multiple agents have the same name or overlapping roles
+  # ===========================================================================
+  check-duplicates:
+    name: Check for Duplicate Agents
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-duplicates
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Check for duplicate agent names
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import yaml
+          import re
+          from collections import defaultdict
+
+          AGENTS_DIR = ".claude/agents"
+
+          if not os.path.exists(AGENTS_DIR):
+              print(f"Agents directory not found: {AGENTS_DIR}")
+              exit(0)
+
+          md_files = [f for f in os.listdir(AGENTS_DIR) if f.endswith('.md')]
+
+          if not md_files:
+              print("No agent files found")
+              exit(0)
+
+          print("=" * 70)
+          print("DUPLICATE AGENT CHECK")
+          print("=" * 70)
+          print()
+
+          # Track agent names and descriptions
+          agent_names = defaultdict(list)
+          agent_descriptions = {}
+
+          for filename in md_files:
+              filepath = os.path.join(AGENTS_DIR, filename)
+
+              with open(filepath, 'r') as f:
+                  content = f.read()
+
+              frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+
+              if frontmatter_match:
+                  try:
+                      frontmatter = yaml.safe_load(frontmatter_match.group(1))
+                      name = frontmatter.get('name', '').lower()
+                      description = frontmatter.get('description', '')
+
+                      if name:
+                          agent_names[name].append(filename)
+                          agent_descriptions[filename] = description
+                  except:
+                      pass
+
+          # Check for duplicate names
+          duplicates_found = False
+
+          for name, files in agent_names.items():
+              if len(files) > 1:
+                  print(f"❌ DUPLICATE NAME: '{name}' found in:")
+                  for f in files:
+                      print(f"   - {f}")
+                  duplicates_found = True
+
+          if duplicates_found:
+              print()
+              print("❌ DUPLICATE AGENTS FOUND - Each agent must have a unique name")
+              exit(1)
+          else:
+              print("✓ No duplicate agent names found")
+              print(f"✓ Total unique agents: {len(agent_names)}")
+
+          print()
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+  # ===========================================================================
+  # AGENT NAMING CONSISTENCY
+  # Ensures filenames match agent names
+  # ===========================================================================
+  check-agent-consistency:
+    name: Check Agent Naming Consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check filename matches agent name
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import yaml
+          import re
+
+          AGENTS_DIR = ".claude/agents"
+          warnings = []
+
+          if not os.path.exists(AGENTS_DIR):
+              print(f"Agents directory not found: {AGENTS_DIR}")
+              exit(0)
+
+          md_files = [f for f in os.listdir(AGENTS_DIR) if f.endswith('.md')]
+
+          for filename in sorted(md_files):
+              filepath = os.path.join(AGENTS_DIR, filename)
+
+              with open(filepath, 'r') as f:
+                  content = f.read()
+
+              # Extract frontmatter
+              frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+
+              if frontmatter_match:
+                  try:
+                      frontmatter = yaml.safe_load(frontmatter_match.group(1))
+                      agent_name = frontmatter.get('name', '')
+                      file_base = filename.replace('.md', '')
+
+                      # Check if filename matches agent name
+                      if agent_name and agent_name != file_base:
+                          msg = f"⚠️  {filename}: Filename '{file_base}' doesn't match agent name '{agent_name}'"
+                          warnings.append(msg)
+                          print(msg)
+                      else:
+                          print(f"✓ {filename}: Filename matches agent name")
+                  except:
+                      pass
+
+          if warnings:
+              print()
+              print("Consider renaming files to match agent names for consistency")
+          else:
+              print()
+              print("✓ All filenames match agent names!")
+          PYTHON_SCRIPT
+
+  # ===========================================================================
+  # GENERATE AGENT DOCUMENTATION INDEX
+  # Creates an auto-generated index of all agents with their capabilities
+  # ===========================================================================
+  generate-documentation-index:
+    name: Generate Agent Documentation Index
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-docs
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Generate agent index
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import yaml
+          import re
+          from datetime import datetime
+
+          AGENTS_DIR = ".claude/agents"
+          OUTPUT_FILE = "AGENTS_INDEX.md"
+
+          if not os.path.exists(AGENTS_DIR):
+              print(f"Agents directory not found: {AGENTS_DIR}")
+              exit(0)
+
+          md_files = sorted([f for f in os.listdir(AGENTS_DIR) if f.endswith('.md')])
+
+          if not md_files:
+              print("No agent files found")
+              exit(0)
+
+          # Collect agent information
+          agents = []
+
+          for filename in md_files:
+              filepath = os.path.join(AGENTS_DIR, filename)
+
+              with open(filepath, 'r') as f:
+                  content = f.read()
+
+              frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+
+              if frontmatter_match:
+                  try:
+                      frontmatter = yaml.safe_load(frontmatter_match.group(1))
+
+                      name = frontmatter.get('name', 'Unknown')
+                      description = frontmatter.get('description', 'No description')
+                      tools = frontmatter.get('tools', [])
+                      model = frontmatter.get('model', 'Unknown')
+
+                      if isinstance(tools, str):
+                          tools = [t.strip() for t in tools.split(',')]
+
+                      agents.append({
+                          'name': name,
+                          'filename': filename,
+                          'description': description,
+                          'tools': tools,
+                          'model': model
+                      })
+                  except Exception as e:
+                      print(f"Warning: Could not parse {filename}: {e}")
+
+          # Generate markdown documentation
+          with open(OUTPUT_FILE, 'w') as f:
+              f.write("# Agent Index\n\n")
+              f.write(f"**Auto-generated on:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n")
+              f.write(f"**Total Agents:** {len(agents)}\n\n")
+              f.write("---\n\n")
+
+              f.write("## Quick Reference\n\n")
+              f.write("| Agent | Model | Tools | Description |\n")
+              f.write("|-------|-------|-------|-------------|\n")
+
+              for agent in agents:
+                  tools_str = ", ".join(agent['tools'][:3])
+                  if len(agent['tools']) > 3:
+                      tools_str += "..."
+                  desc_short = agent['description'][:50] + "..." if len(agent['description']) > 50 else agent['description']
+                  f.write(f"| [{agent['name']}](#{agent['name'].lower().replace(' ', '-')}) | {agent['model']} | {tools_str} | {desc_short} |\n")
+
+              f.write("\n---\n\n")
+
+              f.write("## Detailed Agent Information\n\n")
+
+              for agent in agents:
+                  f.write(f"### {agent['name']}\n\n")
+                  f.write(f"**File:** `.claude/agents/{agent['filename']}`\n\n")
+                  f.write(f"**Model:** `{agent['model']}`\n\n")
+                  f.write(f"**Description:** {agent['description']}\n\n")
+                  f.write(f"**Tools:**\n")
+                  for tool in agent['tools']:
+                      f.write(f"- `{tool}`\n")
+                  f.write("\n---\n\n")
+
+          print(f"✓ Generated agent index: {OUTPUT_FILE}")
+          print(f"✓ Total agents documented: {len(agents)}")
+          PYTHON_SCRIPT
+
+      - name: Upload agent index
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-documentation-index-${{ github.run_id }}
+          path: AGENTS_INDEX.md
+          retention-days: 30
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          if [ -f "AGENTS_INDEX.md" ]; then
+            echo "## 📚 Agent Documentation Index" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat AGENTS_INDEX.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ===========================================================================
+  # GENERATE AGENT COMPATIBILITY MATRIX
+  # Creates a matrix showing which agents can work together
+  # ===========================================================================
+  generate-compatibility-matrix:
+    name: Generate Agent Compatibility Matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-matrix
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Generate compatibility matrix
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import yaml
+          import re
+          import json
+          from datetime import datetime
+
+          AGENTS_DIR = ".claude/agents"
+          OUTPUT_FILE = "AGENT_COMPATIBILITY_MATRIX.md"
+          JSON_OUTPUT = "agent-compatibility.json"
+
+          if not os.path.exists(AGENTS_DIR):
+              print(f"Agents directory not found: {AGENTS_DIR}")
+              exit(0)
+
+          md_files = sorted([f for f in os.listdir(AGENTS_DIR) if f.endswith('.md')])
+
+          if not md_files:
+              print("No agent files found")
+              exit(0)
+
+          # Collect agent information
+          agents = []
+
+          for filename in md_files:
+              filepath = os.path.join(AGENTS_DIR, filename)
+
+              with open(filepath, 'r') as f:
+                  content = f.read()
+
+              frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+
+              if frontmatter_match:
+                  try:
+                      frontmatter = yaml.safe_load(frontmatter_match.group(1))
+
+                      name = frontmatter.get('name', 'Unknown')
+                      tools = frontmatter.get('tools', [])
+                      model = frontmatter.get('model', 'Unknown')
+
+                      if isinstance(tools, str):
+                          tools = [t.strip() for t in tools.split(',')]
+
+                      agents.append({
+                          'name': name,
+                          'tools': set(tools),
+                          'model': model,
+                          'has_task': 'Task' in tools,
+                          'has_ask_user': 'AskUserQuestion' in tools
+                      })
+                  except Exception as e:
+                      print(f"Warning: Could not parse {filename}: {e}")
+
+          # Calculate compatibility
+          compatibility = {}
+
+          for agent in agents:
+              compatibility[agent['name']] = {
+                  'can_delegate_to': [],
+                  'can_escalate': agent['has_task'],
+                  'can_ask_user': agent['has_ask_user'],
+                  'shared_tools': {}
+              }
+
+              # Check which agents this one can delegate to
+              if agent['has_task']:
+                  for other in agents:
+                      if other['name'] != agent['name']:
+                          compatibility[agent['name']]['can_delegate_to'].append(other['name'])
+
+              # Calculate shared tools with other agents
+              for other in agents:
+                  if other['name'] != agent['name']:
+                      shared = agent['tools'] & other['tools']
+                      if shared:
+                          compatibility[agent['name']]['shared_tools'][other['name']] = list(shared)
+
+          # Generate markdown matrix
+          with open(OUTPUT_FILE, 'w') as f:
+              f.write("# Agent Compatibility Matrix\n\n")
+              f.write(f"**Generated:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n")
+              f.write("---\n\n")
+
+              f.write("## Agent Capabilities\n\n")
+              f.write("| Agent | Model | Can Delegate | Can Ask User | Tool Count |\n")
+              f.write("|-------|-------|--------------|--------------|------------|\n")
+
+              for agent in agents:
+                  can_delegate = "✅" if agent['has_task'] else "❌"
+                  can_ask = "✅" if agent['has_ask_user'] else "❌"
+                  f.write(f"| {agent['name']} | {agent['model']} | {can_delegate} | {can_ask} | {len(agent['tools'])} |\n")
+
+              f.write("\n---\n\n")
+
+              f.write("## Delegation Matrix\n\n")
+              f.write("This shows which agents can delegate work to other agents:\n\n")
+
+              for agent_name, comp in compatibility.items():
+                  if comp['can_delegate_to']:
+                      f.write(f"**{agent_name}** can delegate to:\n")
+                      for target in comp['can_delegate_to']:
+                          f.write(f"- {target}\n")
+                      f.write("\n")
+                  else:
+                      f.write(f"**{agent_name}**: Cannot delegate (no Task tool)\n\n")
+
+              f.write("---\n\n")
+
+              f.write("## Tool Overlap Analysis\n\n")
+              f.write("Agents with shared tools (potential for collaboration):\n\n")
+
+              for agent_name, comp in compatibility.items():
+                  if comp['shared_tools']:
+                      f.write(f"**{agent_name}** shares tools with:\n")
+                      for other, shared in comp['shared_tools'].items():
+                          f.write(f"- {other}: {', '.join(shared)}\n")
+                      f.write("\n")
+
+          # Save JSON version
+          with open(JSON_OUTPUT, 'w') as f:
+              json.dump(compatibility, f, indent=2, default=list)
+
+          print(f"✓ Generated compatibility matrix: {OUTPUT_FILE}")
+          print(f"✓ Generated JSON data: {JSON_OUTPUT}")
+          print(f"✓ Total agents analyzed: {len(agents)}")
+          PYTHON_SCRIPT
+
+      - name: Upload compatibility matrix
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-compatibility-matrix-${{ github.run_id }}
+          path: |
+            AGENT_COMPATIBILITY_MATRIX.md
+            agent-compatibility.json
+          retention-days: 30
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          if [ -f "AGENT_COMPATIBILITY_MATRIX.md" ]; then
+            echo "## 🔗 Agent Compatibility Matrix" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat AGENT_COMPATIBILITY_MATRIX.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ===========================================================================
+  # TEST MARKDOWN RENDERING
+  # Validates that agent documentation renders correctly as markdown
+  # ===========================================================================
+  test-markdown-rendering:
+    name: Test Agent Markdown Rendering
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-markdown-test
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install markdown processor
+        run: npm install -g marked
+
+      - name: Test markdown rendering
+        run: |
+          echo "Testing markdown rendering for agent files..."
+
+          if [ ! -d ".claude/agents" ]; then
+            echo "No agents directory found"
+            exit 0
+          fi
+
+          # Find all agent markdown files
+          agent_files=$(find .claude/agents -name "*.md" -type f)
+
+          if [ -z "$agent_files" ]; then
+            echo "No agent files found"
+            exit 0
+          fi
+
+          has_errors=0
+          file_count=0
+
+          while IFS= read -r file; do
+            echo "Testing: $file"
+            file_count=$((file_count + 1))
+
+            # Try to render with marked (validates markdown syntax)
+            if ! marked "$file" > /dev/null 2>&1; then
+              echo "  ❌ Markdown rendering failed"
+              has_errors=1
+            else
+              echo "  ✓ Renders correctly"
+
+              # Check for common issues
+              if grep -q "^\s*#[^#\s]" "$file"; then
+                echo "  ⚠️  Warning: Heading without space after #"
+              fi
+
+              if grep -q "](.*\s.*)" "$file"; then
+                echo "  ⚠️  Warning: Link with spaces (should use %20)"
+              fi
+            fi
+          done <<< "$agent_files"
+
+          echo ""
+          echo "Tested $file_count agent files"
+
+          if [ $has_errors -eq 1 ]; then
+            echo "❌ Some files have rendering issues"
+            exit 1
+          else
+            echo "✓ All agent files render correctly"
+          fi
+
+      - name: Upload rendering test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: markdown-rendering-test-${{ github.run_id }}
+          path: |
+            .claude/agents/*.md
+          retention-days: 7

@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": "2025-11-18T22:00:00.000Z",
+    "action": "workspace_created",
+    "details": {
+      "workspaceName": "project-b",
+      "createdBy": "orchestrator",
+      "initialConfig": {
+        "enabledAgents": [
+          "coder",
+          "tester",
+          "stuck",
+          "researcher"
+        ]
+      }
+    }
+  }
+]

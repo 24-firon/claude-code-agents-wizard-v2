@@ -1,0 +1,301 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-agents.dev/schemas/plugin.json",
+  "title": "Plugin Manifest",
+  "description": "Schema for Claude Code plugin manifest files",
+  "type": "object",
+  "required": ["name", "version", "description", "main"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Plugin name (must be unique, lowercase, alphanumeric with dashes)",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 3,
+      "maxLength": 50
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version (e.g., 1.0.0)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-z0-9.-]+)?(\\+[a-z0-9.-]+)?$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the plugin",
+      "minLength": 10,
+      "maxLength": 200
+    },
+    "author": {
+      "type": "string",
+      "description": "Plugin author name or organization"
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier",
+      "default": "MIT"
+    },
+    "homepage": {
+      "type": "string",
+      "description": "Plugin homepage URL",
+      "format": "uri"
+    },
+    "repository": {
+      "type": "object",
+      "description": "Source code repository",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["git", "svn", "hg"]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "main": {
+      "type": "string",
+      "description": "Entry point file (relative to plugin directory)",
+      "default": "index.js"
+    },
+    "agents": {
+      "type": "array",
+      "description": "Custom agents provided by this plugin",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Agent name (unique identifier)",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of what the agent does"
+          },
+          "file": {
+            "type": "string",
+            "description": "Path to agent definition file (Markdown)"
+          },
+          "handler": {
+            "type": "string",
+            "description": "JavaScript handler function name (if programmatic)"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether agent is enabled by default",
+            "default": true
+          },
+          "config": {
+            "type": "object",
+            "description": "Agent-specific configuration"
+          }
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "description": "Custom tools provided by this plugin",
+      "items": {
+        "type": "object",
+        "required": ["name", "handler"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tool name",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "description": {
+            "type": "string",
+            "description": "Tool description"
+          },
+          "handler": {
+            "type": "string",
+            "description": "Handler function name"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "JSON Schema for tool parameters"
+          }
+        }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Lifecycle hooks",
+      "properties": {
+        "agent:before-invoke": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "agent:after-invoke": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "agent:on-error": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "config:before-load": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "config:after-load": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "description": "Required permissions for this plugin",
+      "items": {
+        "type": "string",
+        "enum": [
+          "filesystem:read",
+          "filesystem:write",
+          "network:http",
+          "network:https",
+          "process:spawn",
+          "storage:persistent",
+          "storage:temporary",
+          "config:read",
+          "config:write",
+          "agents:invoke",
+          "agents:register",
+          "tools:register",
+          "events:emit",
+          "events:subscribe"
+        ]
+      },
+      "default": []
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Plugin and npm dependencies",
+      "properties": {
+        "plugins": {
+          "type": "object",
+          "description": "Required plugins with version ranges",
+          "additionalProperties": {
+            "type": "string",
+            "description": "Semantic version range"
+          }
+        },
+        "npm": {
+          "type": "object",
+          "description": "Required npm packages",
+          "additionalProperties": {
+            "type": "string",
+            "description": "Npm package version range"
+          }
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "Plugin configuration (can be overridden by users)",
+      "additionalProperties": true
+    },
+    "configSchema": {
+      "type": "string",
+      "description": "Path to JSON Schema file for configuration validation"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether plugin is enabled by default",
+      "default": true
+    },
+    "autoload": {
+      "type": "boolean",
+      "description": "Whether to load plugin automatically on startup",
+      "default": true
+    },
+    "priority": {
+      "type": "number",
+      "description": "Load priority (higher = loads first)",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags for categorization and discovery",
+      "items": {
+        "type": "string"
+      }
+    },
+    "keywords": {
+      "type": "array",
+      "description": "Keywords for search",
+      "items": {
+        "type": "string"
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "Compatibility requirements",
+      "properties": {
+        "agentFramework": {
+          "type": "string",
+          "description": "Minimum agent framework version"
+        },
+        "node": {
+          "type": "string",
+          "description": "Node.js version range"
+        },
+        "platform": {
+          "type": "array",
+          "description": "Supported platforms",
+          "items": {
+            "type": "string",
+            "enum": ["darwin", "linux", "win32"]
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "description": "Resource limits",
+      "properties": {
+        "maxMemory": {
+          "type": "number",
+          "description": "Maximum memory in MB",
+          "default": 512
+        },
+        "maxCpu": {
+          "type": "number",
+          "description": "Maximum CPU percentage",
+          "default": 50
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Maximum execution time in ms",
+          "default": 30000
+        }
+      }
+    },
+    "screenshots": {
+      "type": "array",
+      "description": "Screenshots for plugin showcase",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "documentation": {
+      "type": "string",
+      "description": "Path to documentation file or URL",
+      "default": "README.md"
+    },
+    "changelog": {
+      "type": "string",
+      "description": "Path to changelog file",
+      "default": "CHANGELOG.md"
+    }
+  }
+}

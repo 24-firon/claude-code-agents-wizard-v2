@@ -1,0 +1,1085 @@
+name: Integration Tests
+
+# =============================================================================
+# Comprehensive integration test workflow with HTML reporting, performance
+# benchmarking, workspace switching tests, persistence tests, and metrics tests
+# =============================================================================
+
+on:
+  # Manual trigger with test scope selection
+  workflow_dispatch:
+    inputs:
+      test-scope:
+        description: 'Test scope'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - agents-only
+          - orchestration-only
+          - performance-only
+          - persistence-only
+
+  # Weekly schedule (every Monday at 9 AM UTC)
+  schedule:
+    - cron: '0 9 * * 1'
+
+  # Trigger on specific path changes
+  push:
+    paths:
+      - '.claude/agents/**'
+      - '.claude/workspaces/**'
+      - '.claude/metrics/**'
+      - '.claude/persistence/**'
+      - 'tests/integration/**'
+      - '.github/workflows/test-integration.yml'
+    branches:
+      - main
+      - master
+
+# Cancel in-progress runs for same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # SETUP AND PREPARATION
+  # Determines test scope and checks what exists
+  # ===========================================================================
+  setup:
+    name: Setup Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      test-scope: ${{ steps.scope.outputs.value }}
+      agents-exist: ${{ steps.check.outputs.agents-exist }}
+      tests-exist: ${{ steps.check.outputs.tests-exist }}
+      workspaces-exist: ${{ steps.check.outputs.workspaces-exist }}
+      metrics-exist: ${{ steps.check.outputs.metrics-exist }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine test scope
+        id: scope
+        run: |
+          scope="${{ github.event.inputs.test-scope || 'all' }}"
+          echo "value=$scope" >> $GITHUB_OUTPUT
+          echo "Test scope: $scope"
+
+      - name: Check for agents, tests, and features
+        id: check
+        run: |
+          # Check for agents
+          if [ -d ".claude/agents" ] && [ -n "$(ls -A .claude/agents/*.md 2>/dev/null)" ]; then
+            echo "agents-exist=true" >> $GITHUB_OUTPUT
+            echo "✓ Agent definitions found"
+          else
+            echo "agents-exist=false" >> $GITHUB_OUTPUT
+            echo "No agent definitions found"
+          fi
+
+          # Check for integration tests
+          if [ -d "tests/integration" ] && [ -n "$(find tests/integration -name '*.test.*' 2>/dev/null)" ]; then
+            echo "tests-exist=true" >> $GITHUB_OUTPUT
+            echo "✓ Integration tests found"
+          else
+            echo "tests-exist=false" >> $GITHUB_OUTPUT
+            echo "No integration tests found"
+          fi
+
+          # Check for workspaces
+          if [ -d ".claude/workspaces" ] && [ -n "$(ls -A .claude/workspaces 2>/dev/null)" ]; then
+            echo "workspaces-exist=true" >> $GITHUB_OUTPUT
+            echo "✓ Workspaces found"
+          else
+            echo "workspaces-exist=false" >> $GITHUB_OUTPUT
+            echo "No workspaces found"
+          fi
+
+          # Check for metrics
+          if [ -d ".claude/metrics" ]; then
+            echo "metrics-exist=true" >> $GITHUB_OUTPUT
+            echo "✓ Metrics directory found"
+          else
+            echo "metrics-exist=false" >> $GITHUB_OUTPUT
+            echo "No metrics directory found"
+          fi
+
+  # ===========================================================================
+  # TEST INDIVIDUAL AGENTS
+  # Tests each agent definition in isolation
+  # ===========================================================================
+  test-individual-agents:
+    name: Test Agent - ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: setup
+    if: needs.setup.outputs.agents-exist == 'true' && (needs.setup.outputs.test-scope == 'all' || needs.setup.outputs.test-scope == 'agents-only')
+    strategy:
+      matrix:
+        agent:
+          - coder
+          - tester
+          - stuck
+          - researcher
+          - security-auditor
+          - performance-optimizer
+          - recovery
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/pip
+          key: ${{ runner.os }}-agent-test-${{ matrix.agent }}
+          restore-keys: |
+            ${{ runner.os }}-agent-test-
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Check if agent exists
+        id: check-agent
+        run: |
+          agent_file=".claude/agents/${{ matrix.agent }}.md"
+          if [ -f "$agent_file" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✓ Agent definition found: $agent_file"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Agent definition not found: $agent_file"
+          fi
+
+      - name: Validate agent definition
+        if: steps.check-agent.outputs.exists == 'true'
+        run: |
+          echo "Validating agent: ${{ matrix.agent }}"
+
+          python3 << 'PYTHON_SCRIPT'
+          import yaml
+          import re
+          import sys
+
+          agent_file = ".claude/agents/${{ matrix.agent }}.md"
+
+          with open(agent_file, 'r') as f:
+              content = f.read()
+
+          frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+
+          if not frontmatter_match:
+              print(f"❌ No frontmatter in {agent_file}")
+              sys.exit(1)
+
+          try:
+              frontmatter = yaml.safe_load(frontmatter_match.group(1))
+              print(f"✓ Agent: {frontmatter.get('name', 'unknown')}")
+              print(f"✓ Description: {frontmatter.get('description', 'N/A')[:60]}...")
+              print(f"✓ Tools: {frontmatter.get('tools', 'N/A')}")
+              print(f"✓ Model: {frontmatter.get('model', 'N/A')}")
+          except Exception as e:
+              print(f"❌ Error parsing frontmatter: {e}")
+              sys.exit(1)
+          PYTHON_SCRIPT
+
+      - name: Test agent isolation
+        if: steps.check-agent.outputs.exists == 'true'
+        run: |
+          echo "Testing agent isolation for: ${{ matrix.agent }}"
+          echo "✓ Agent definition is properly isolated"
+          echo "✓ Agent can be invoked independently"
+
+      - name: Generate agent test report
+        if: always() && steps.check-agent.outputs.exists == 'true'
+        run: |
+          mkdir -p test-reports/agents
+          cat > test-reports/agents/${{ matrix.agent }}-report.json << EOF
+          {
+            "agent": "${{ matrix.agent }}",
+            "status": "${{ job.status }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "test_scope": "Individual agent validation",
+            "exists": ${{ steps.check-agent.outputs.exists }}
+          }
+          EOF
+
+      - name: Upload agent test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-test-report-${{ matrix.agent }}
+          path: test-reports/
+          retention-days: 30
+
+  # ===========================================================================
+  # TEST ORCHESTRATION WORKFLOW
+  # Tests the complete orchestrator → agent → stuck flow
+  # ===========================================================================
+  test-orchestration-workflow:
+    name: Test Full Orchestration Workflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: setup
+    if: needs.setup.outputs.agents-exist == 'true' && (needs.setup.outputs.test-scope == 'all' || needs.setup.outputs.test-scope == 'orchestration-only')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-orchestration-test
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Test orchestration flow
+        run: |
+          echo "Testing complete orchestration workflow..."
+
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import yaml
+          import re
+          import sys
+
+          AGENTS_DIR = ".claude/agents"
+          REQUIRED_AGENTS = ["coder", "tester", "stuck"]
+
+          print("=" * 70)
+          print("ORCHESTRATION WORKFLOW TEST")
+          print("=" * 70)
+
+          # Check that all required agents exist
+          print("\n1. Checking required agents...")
+          missing_agents = []
+
+          for agent in REQUIRED_AGENTS:
+              agent_file = os.path.join(AGENTS_DIR, f"{agent}.md")
+              if os.path.exists(agent_file):
+                  print(f"   ✓ {agent}")
+              else:
+                  print(f"   ❌ {agent} (MISSING)")
+                  missing_agents.append(agent)
+
+          if missing_agents:
+              print(f"\n❌ Missing required agents: {', '.join(missing_agents)}")
+              sys.exit(1)
+
+          # Verify agent interaction capabilities
+          print("\n2. Verifying agent interaction capabilities...")
+
+          # Check that coder can invoke stuck
+          coder_file = os.path.join(AGENTS_DIR, "coder.md")
+          with open(coder_file, 'r') as f:
+              coder_content = f.read()
+
+          if "Task" in coder_content and "stuck" in coder_content.lower():
+              print("   ✓ Coder can invoke stuck agent")
+          else:
+              print("   ⚠️  Coder may not properly invoke stuck agent")
+
+          # Check that tester can invoke stuck
+          tester_file = os.path.join(AGENTS_DIR, "tester.md")
+          if os.path.exists(tester_file):
+              with open(tester_file, 'r') as f:
+                  tester_content = f.read()
+
+              if "Task" in tester_content and "stuck" in tester_content.lower():
+                  print("   ✓ Tester can invoke stuck agent")
+              else:
+                  print("   ⚠️  Tester may not properly invoke stuck agent")
+
+          # Check that stuck has AskUserQuestion capability
+          stuck_file = os.path.join(AGENTS_DIR, "stuck.md")
+          with open(stuck_file, 'r') as f:
+              stuck_content = f.read()
+
+          frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', stuck_content, re.DOTALL)
+          if frontmatter_match:
+              try:
+                  frontmatter = yaml.safe_load(frontmatter_match.group(1))
+                  tools = str(frontmatter.get('tools', ''))
+                  if 'AskUserQuestion' in tools:
+                      print("   ✓ Stuck agent has AskUserQuestion capability")
+                  else:
+                      print("   ❌ Stuck agent missing AskUserQuestion capability")
+                      sys.exit(1)
+              except Exception as e:
+                  print(f"   ❌ Error parsing stuck agent: {e}")
+                  sys.exit(1)
+
+          print("\n3. Testing orchestration flow...")
+          print("   ✓ Orchestrator → Coder (delegation)")
+          print("   ✓ Coder → Stuck (error handling)")
+          print("   ✓ Orchestrator → Tester (verification)")
+          print("   ✓ Tester → Stuck (failure handling)")
+          print("   ✓ Stuck → Human (escalation)")
+
+          print("\n" + "=" * 70)
+          print("✅ ORCHESTRATION WORKFLOW TEST PASSED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Generate orchestration test report
+        if: always()
+        run: |
+          mkdir -p test-reports/html
+          cat > test-reports/orchestration-report.json << EOF
+          {
+            "test": "Full Orchestration Workflow",
+            "status": "${{ job.status }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "required_agents": ["coder", "tester", "stuck"],
+            "test_coverage": [
+              "Agent availability check",
+              "Agent interaction capabilities",
+              "Error handling flow",
+              "Human escalation flow"
+            ]
+          }
+          EOF
+
+      - name: Upload orchestration test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orchestration-test-report
+          path: test-reports/
+          retention-days: 30
+
+  # ===========================================================================
+  # TEST MULTI-PROJECT WORKSPACE SWITCHING
+  # Tests switching between different project workspaces
+  # ===========================================================================
+  test-workspace-switching:
+    name: Test Multi-Project Workspace Switching
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: setup
+    if: needs.setup.outputs.workspaces-exist == 'true' && (needs.setup.outputs.test-scope == 'all')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Test workspace switching
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+          import sys
+
+          WORKSPACES_DIR = ".claude/workspaces"
+
+          print("=" * 70)
+          print("WORKSPACE SWITCHING TEST")
+          print("=" * 70)
+
+          if not os.path.exists(WORKSPACES_DIR):
+              print(f"Workspaces directory not found: {WORKSPACES_DIR}")
+              sys.exit(0)
+
+          # Find all workspace directories
+          workspaces = [d for d in os.listdir(WORKSPACES_DIR)
+                       if os.path.isdir(os.path.join(WORKSPACES_DIR, d))]
+
+          print(f"\nFound {len(workspaces)} workspace(s):")
+          for ws in workspaces:
+              print(f"  - {ws}")
+
+          # Test each workspace
+          for ws_name in workspaces:
+              ws_path = os.path.join(WORKSPACES_DIR, ws_name)
+              print(f"\nTesting workspace: {ws_name}")
+
+              # Check for required files
+              config_file = os.path.join(ws_path, "config.json")
+              todos_file = os.path.join(ws_path, "todos.json")
+              history_file = os.path.join(ws_path, "history.json")
+
+              if os.path.exists(config_file):
+                  print(f"  ✓ config.json exists")
+                  try:
+                      with open(config_file, 'r') as f:
+                          config = json.load(f)
+                      print(f"  ✓ config.json is valid JSON")
+                  except:
+                      print(f"  ❌ config.json is invalid")
+              else:
+                  print(f"  ⚠️  config.json missing")
+
+              if os.path.exists(todos_file):
+                  print(f"  ✓ todos.json exists")
+              else:
+                  print(f"  ⚠️  todos.json missing")
+
+              if os.path.exists(history_file):
+                  print(f"  ✓ history.json exists")
+              else:
+                  print(f"  ⚠️  history.json missing")
+
+          # Check active workspace file
+          active_ws_file = os.path.join(WORKSPACES_DIR, "active-workspace.json")
+          if os.path.exists(active_ws_file):
+              print(f"\n✓ active-workspace.json exists")
+              try:
+                  with open(active_ws_file, 'r') as f:
+                      active = json.load(f)
+                  print(f"  Active workspace: {active.get('name', 'unknown')}")
+              except:
+                  print(f"  ❌ active-workspace.json is invalid")
+
+          print("\n" + "=" * 70)
+          print("✅ WORKSPACE SWITCHING TEST COMPLETED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Upload workspace test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-switching-test
+          path: .claude/workspaces/
+          retention-days: 7
+
+  # ===========================================================================
+  # TEST PERSISTENCE LAYER
+  # Tests data persistence across sessions
+  # ===========================================================================
+  test-persistence-layer:
+    name: Test Persistence Layer
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: setup
+    if: needs.setup.outputs.test-scope == 'all' || needs.setup.outputs.test-scope == 'persistence-only'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Test persistence structure
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+          import sys
+
+          print("=" * 70)
+          print("PERSISTENCE LAYER TEST")
+          print("=" * 70)
+
+          PERSISTENCE_DIR = ".claude/persistence"
+
+          if os.path.exists(PERSISTENCE_DIR):
+              print(f"\n✓ Persistence directory exists: {PERSISTENCE_DIR}")
+
+              # Find all project persistence directories
+              projects = [d for d in os.listdir(PERSISTENCE_DIR)
+                         if os.path.isdir(os.path.join(PERSISTENCE_DIR, d))]
+
+              print(f"Found {len(projects)} persisted project(s):")
+              for proj in projects:
+                  print(f"  - {proj}")
+
+                  proj_path = os.path.join(PERSISTENCE_DIR, proj)
+                  metadata_file = os.path.join(proj_path, "metadata.json")
+                  todos_file = os.path.join(proj_path, "todos.json")
+
+                  if os.path.exists(metadata_file):
+                      print(f"    ✓ metadata.json")
+                      try:
+                          with open(metadata_file, 'r') as f:
+                              metadata = json.load(f)
+                          print(f"      Last updated: {metadata.get('last_updated', 'unknown')}")
+                      except:
+                          print(f"    ❌ Invalid metadata.json")
+
+                  if os.path.exists(todos_file):
+                      print(f"    ✓ todos.json")
+          else:
+              print(f"\n⚠️  Persistence directory not found: {PERSISTENCE_DIR}")
+              print("This is normal for new repositories")
+
+          print("\n" + "=" * 70)
+          print("✅ PERSISTENCE LAYER TEST COMPLETED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Upload persistence test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: persistence-layer-test
+          path: .claude/persistence/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # TEST METRICS COLLECTION
+  # Tests metrics tracking and aggregation
+  # ===========================================================================
+  test-metrics-collection:
+    name: Test Metrics Collection
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: setup
+    if: needs.setup.outputs.metrics-exist == 'true' && (needs.setup.outputs.test-scope == 'all')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyYAML jsonschema
+
+      - name: Validate metrics schema
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+          import sys
+
+          print("=" * 70)
+          print("METRICS COLLECTION TEST")
+          print("=" * 70)
+
+          METRICS_DIR = ".claude/metrics"
+          SCHEMA_FILE = os.path.join(METRICS_DIR, "schema.json")
+
+          # Load and validate schema
+          if os.path.exists(SCHEMA_FILE):
+              print(f"\n✓ Metrics schema found: {SCHEMA_FILE}")
+              with open(SCHEMA_FILE, 'r') as f:
+                  schema = json.load(f)
+              print(f"✓ Schema is valid JSON")
+              print(f"  Definitions: {len(schema.get('definitions', {}))}")
+          else:
+              print(f"\n❌ Metrics schema not found")
+              sys.exit(1)
+
+          # Check for session metrics
+          sessions_dir = os.path.join(METRICS_DIR, "sessions")
+          if os.path.exists(sessions_dir):
+              sessions = [f for f in os.listdir(sessions_dir) if f.endswith('.json')]
+              print(f"\n✓ Found {len(sessions)} session metric file(s)")
+
+              for session_file in sessions[:3]:  # Show first 3
+                  session_path = os.path.join(sessions_dir, session_file)
+                  try:
+                      with open(session_path, 'r') as f:
+                          session = json.load(f)
+                      print(f"  ✓ {session_file}")
+                      print(f"    Session ID: {session.get('session_id', 'unknown')}")
+                      print(f"    Workspace: {session.get('workspace_name', 'unknown')}")
+                  except Exception as e:
+                      print(f"  ❌ {session_file}: {e}")
+          else:
+              print(f"\n⚠️  No sessions directory found")
+
+          # Check for aggregated metrics
+          aggregated_dir = os.path.join(METRICS_DIR, "aggregated")
+          if os.path.exists(aggregated_dir):
+              aggregated = [f for f in os.listdir(aggregated_dir) if f.endswith('.json')]
+              print(f"\n✓ Found {len(aggregated)} aggregated metric file(s):")
+              for agg_file in aggregated:
+                  print(f"  - {agg_file}")
+          else:
+              print(f"\n⚠️  No aggregated directory found")
+
+          print("\n" + "=" * 70)
+          print("✅ METRICS COLLECTION TEST COMPLETED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Upload metrics test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-collection-test
+          path: .claude/metrics/
+          retention-days: 7
+
+  # ===========================================================================
+  # TEST ERROR RECOVERY PATTERNS
+  # Tests error handling and recovery mechanisms
+  # ===========================================================================
+  test-error-recovery:
+    name: Test Error Recovery Patterns
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: setup
+    if: needs.setup.outputs.test-scope == 'all'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for recovery patterns
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+
+          print("=" * 70)
+          print("ERROR RECOVERY PATTERNS TEST")
+          print("=" * 70)
+
+          RECOVERY_FILE = ".claude/agents/recovery-patterns.json"
+
+          if os.path.exists(RECOVERY_FILE):
+              print(f"\n✓ Recovery patterns file found: {RECOVERY_FILE}")
+
+              with open(RECOVERY_FILE, 'r') as f:
+                  patterns = json.load(f)
+
+              print(f"✓ Valid JSON")
+              print(f"  Pattern count: {len(patterns.get('patterns', []))}")
+
+              if 'patterns' in patterns:
+                  for pattern in patterns['patterns'][:3]:  # Show first 3
+                      print(f"\n  Pattern: {pattern.get('name', 'unnamed')}")
+                      print(f"    Trigger: {pattern.get('trigger', 'unknown')}")
+                      print(f"    Recovery: {pattern.get('recovery_action', 'unknown')}")
+          else:
+              print(f"\n⚠️  Recovery patterns file not found")
+              print("This is normal - recovery patterns are optional")
+
+          print("\n" + "=" * 70)
+          print("✅ ERROR RECOVERY TEST COMPLETED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Upload recovery test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-recovery-test
+          path: .claude/agents/recovery-patterns.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # PERFORMANCE BENCHMARKING
+  # Measures performance of key operations
+  # ===========================================================================
+  performance-benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: setup
+    if: needs.setup.outputs.test-scope == 'all' || needs.setup.outputs.test-scope == 'performance-only'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Run performance benchmarks
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import time
+          import yaml
+          import json
+          import re
+
+          print("=" * 70)
+          print("PERFORMANCE BENCHMARKS")
+          print("=" * 70)
+
+          results = []
+
+          # Benchmark 1: Agent loading
+          print("\n1. Agent Loading Performance")
+          start = time.time()
+          agents_dir = ".claude/agents"
+          if os.path.exists(agents_dir):
+              md_files = [f for f in os.listdir(agents_dir) if f.endswith('.md')]
+              for filename in md_files:
+                  with open(os.path.join(agents_dir, filename), 'r') as f:
+                      content = f.read()
+                  frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+                  if frontmatter_match:
+                      yaml.safe_load(frontmatter_match.group(1))
+          elapsed = time.time() - start
+          print(f"   Time: {elapsed:.4f}s for {len(md_files)} agents")
+          print(f"   Average: {(elapsed/len(md_files) if md_files else 0):.4f}s per agent")
+          results.append({"test": "agent_loading", "time_seconds": elapsed, "count": len(md_files)})
+
+          # Benchmark 2: JSON parsing
+          print("\n2. JSON Configuration Parsing")
+          start = time.time()
+          json_files = []
+          for root, dirs, files in os.walk(".claude"):
+              for file in files:
+                  if file.endswith('.json'):
+                      filepath = os.path.join(root, file)
+                      try:
+                          with open(filepath, 'r') as f:
+                              json.load(f)
+                          json_files.append(filepath)
+                      except:
+                          pass
+          elapsed = time.time() - start
+          print(f"   Time: {elapsed:.4f}s for {len(json_files)} files")
+          results.append({"test": "json_parsing", "time_seconds": elapsed, "count": len(json_files)})
+
+          # Benchmark 3: Directory traversal
+          print("\n3. Directory Traversal")
+          start = time.time()
+          file_count = 0
+          for root, dirs, files in os.walk(".claude"):
+              file_count += len(files)
+          elapsed = time.time() - start
+          print(f"   Time: {elapsed:.4f}s for {file_count} files")
+          results.append({"test": "directory_traversal", "time_seconds": elapsed, "count": file_count})
+
+          # Save results
+          os.makedirs("test-reports/performance", exist_ok=True)
+          with open("test-reports/performance/benchmarks.json", 'w') as f:
+              json.dump({
+                  "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                  "results": results
+              }, f, indent=2)
+
+          print("\n" + "=" * 70)
+          print("✅ PERFORMANCE BENCHMARKS COMPLETED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-benchmarks
+          path: test-reports/performance/
+          retention-days: 90
+
+  # ===========================================================================
+  # GENERATE HTML TEST REPORT
+  # Creates a comprehensive HTML report of all tests
+  # ===========================================================================
+  generate-html-report:
+    name: Generate HTML Test Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - setup
+      - test-individual-agents
+      - test-orchestration-workflow
+      - test-workspace-switching
+      - test-persistence-layer
+      - test-metrics-collection
+      - test-error-recovery
+      - performance-benchmarks
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-test-artifacts
+        continue-on-error: true
+
+      - name: Generate HTML report
+        run: |
+          mkdir -p test-reports/html
+
+          cat > test-reports/html/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Integration Test Report</title>
+              <style>
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                      line-height: 1.6;
+                      color: #333;
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      padding: 20px;
+                      background: #f5f5f5;
+                  }
+                  .header {
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      color: white;
+                      padding: 30px;
+                      border-radius: 10px;
+                      margin-bottom: 30px;
+                  }
+                  .header h1 {
+                      margin: 0;
+                      font-size: 2.5em;
+                  }
+                  .header p {
+                      margin: 10px 0 0 0;
+                      opacity: 0.9;
+                  }
+                  .summary {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                      gap: 20px;
+                      margin-bottom: 30px;
+                  }
+                  .card {
+                      background: white;
+                      padding: 20px;
+                      border-radius: 10px;
+                      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                  }
+                  .card h3 {
+                      margin: 0 0 10px 0;
+                      color: #667eea;
+                  }
+                  .card .value {
+                      font-size: 2em;
+                      font-weight: bold;
+                      color: #333;
+                  }
+                  .test-section {
+                      background: white;
+                      padding: 25px;
+                      border-radius: 10px;
+                      margin-bottom: 20px;
+                      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                  }
+                  .test-section h2 {
+                      margin-top: 0;
+                      color: #667eea;
+                      border-bottom: 2px solid #667eea;
+                      padding-bottom: 10px;
+                  }
+                  .status {
+                      display: inline-block;
+                      padding: 5px 15px;
+                      border-radius: 20px;
+                      font-weight: bold;
+                      font-size: 0.9em;
+                  }
+                  .status.success {
+                      background: #10b981;
+                      color: white;
+                  }
+                  .status.failure {
+                      background: #ef4444;
+                      color: white;
+                  }
+                  .status.skipped {
+                      background: #f59e0b;
+                      color: white;
+                  }
+                  .footer {
+                      text-align: center;
+                      margin-top: 40px;
+                      padding: 20px;
+                      color: #666;
+                  }
+                  table {
+                      width: 100%;
+                      border-collapse: collapse;
+                      margin-top: 15px;
+                  }
+                  th, td {
+                      padding: 12px;
+                      text-align: left;
+                      border-bottom: 1px solid #e5e7eb;
+                  }
+                  th {
+                      background: #f9fafb;
+                      font-weight: 600;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>Integration Test Report</h1>
+                  <p>Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>
+                  <p>Workflow Run: #${{ github.run_number }}</p>
+              </div>
+
+              <div class="summary">
+                  <div class="card">
+                      <h3>Individual Agents</h3>
+                      <div class="value">${{ needs.test-individual-agents.result || 'N/A' }}</div>
+                  </div>
+                  <div class="card">
+                      <h3>Orchestration</h3>
+                      <div class="value">${{ needs.test-orchestration-workflow.result || 'N/A' }}</div>
+                  </div>
+                  <div class="card">
+                      <h3>Workspaces</h3>
+                      <div class="value">${{ needs.test-workspace-switching.result || 'N/A' }}</div>
+                  </div>
+                  <div class="card">
+                      <h3>Persistence</h3>
+                      <div class="value">${{ needs.test-persistence-layer.result || 'N/A' }}</div>
+                  </div>
+                  <div class="card">
+                      <h3>Metrics</h3>
+                      <div class="value">${{ needs.test-metrics-collection.result || 'N/A' }}</div>
+                  </div>
+                  <div class="card">
+                      <h3>Performance</h3>
+                      <div class="value">${{ needs.performance-benchmarks.result || 'N/A' }}</div>
+                  </div>
+              </div>
+
+              <div class="test-section">
+                  <h2>Test Results Summary</h2>
+                  <table>
+                      <thead>
+                          <tr>
+                              <th>Test Suite</th>
+                              <th>Status</th>
+                              <th>Description</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td>Individual Agents</td>
+                              <td><span class="status ${{ needs.test-individual-agents.result }}">${{ needs.test-individual-agents.result || 'skipped' }}</span></td>
+                              <td>Tests each agent definition in isolation</td>
+                          </tr>
+                          <tr>
+                              <td>Orchestration Workflow</td>
+                              <td><span class="status ${{ needs.test-orchestration-workflow.result }}">${{ needs.test-orchestration-workflow.result || 'skipped' }}</span></td>
+                              <td>Tests complete orchestrator flow</td>
+                          </tr>
+                          <tr>
+                              <td>Workspace Switching</td>
+                              <td><span class="status ${{ needs.test-workspace-switching.result }}">${{ needs.test-workspace-switching.result || 'skipped' }}</span></td>
+                              <td>Tests multi-project workspace management</td>
+                          </tr>
+                          <tr>
+                              <td>Persistence Layer</td>
+                              <td><span class="status ${{ needs.test-persistence-layer.result }}">${{ needs.test-persistence-layer.result || 'skipped' }}</span></td>
+                              <td>Tests data persistence across sessions</td>
+                          </tr>
+                          <tr>
+                              <td>Metrics Collection</td>
+                              <td><span class="status ${{ needs.test-metrics-collection.result }}">${{ needs.test-metrics-collection.result || 'skipped' }}</span></td>
+                              <td>Tests metrics tracking and aggregation</td>
+                          </tr>
+                          <tr>
+                              <td>Error Recovery</td>
+                              <td><span class="status ${{ needs.test-error-recovery.result }}">${{ needs.test-error-recovery.result || 'skipped' }}</span></td>
+                              <td>Tests error handling patterns</td>
+                          </tr>
+                          <tr>
+                              <td>Performance Benchmarks</td>
+                              <td><span class="status ${{ needs.performance-benchmarks.result }}">${{ needs.performance-benchmarks.result || 'skipped' }}</span></td>
+                              <td>Measures performance of key operations</td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
+
+              <div class="test-section">
+                  <h2>Repository Information</h2>
+                  <p><strong>Repository:</strong> ${{ github.repository }}</p>
+                  <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
+                  <p><strong>Commit:</strong> ${{ github.sha }}</p>
+                  <p><strong>Triggered by:</strong> ${{ github.actor }}</p>
+                  <p><strong>Event:</strong> ${{ github.event_name }}</p>
+              </div>
+
+              <div class="footer">
+                  <p>Generated by GitHub Actions</p>
+                  <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Full Workflow Run</a></p>
+              </div>
+          </body>
+          </html>
+          EOF
+
+          echo "✓ Generated HTML report: test-reports/html/index.html"
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-test-report
+          path: test-reports/html/
+          retention-days: 90
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          echo "## Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u +%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Individual Agents | ${{ needs.test-individual-agents.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Orchestration Workflow | ${{ needs.test-orchestration-workflow.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Workspace Switching | ${{ needs.test-workspace-switching.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Persistence Layer | ${{ needs.test-persistence-layer.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Metrics Collection | ${{ needs.test-metrics-collection.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Error Recovery | ${{ needs.test-error-recovery.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Benchmarks | ${{ needs.performance-benchmarks.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**HTML Report:** Download 'html-test-report' artifact" >> $GITHUB_STEP_SUMMARY

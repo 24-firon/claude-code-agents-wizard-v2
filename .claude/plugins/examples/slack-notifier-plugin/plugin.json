@@ -1,0 +1,48 @@
+{
+  "name": "slack-notifier-plugin",
+  "version": "1.0.0",
+  "description": "Send notifications to Slack channels via webhooks",
+  "author": "Claude Code Team",
+  "license": "MIT",
+  "main": "index.js",
+  "agents": [],
+  "tools": [
+    {
+      "name": "slack-notify",
+      "description": "Send a notification to Slack",
+      "handler": "sendNotification"
+    }
+  ],
+  "hooks": {
+    "agent:completed": ["onAgentCompleted"],
+    "agent:failed": ["onAgentFailed"]
+  },
+  "permissions": [
+    "network:https",
+    "config:read",
+    "tools:register",
+    "events:emit",
+    "events:subscribe"
+  ],
+  "dependencies": {
+    "npm": {
+      "axios": "^1.6.0"
+    }
+  },
+  "config": {
+    "webhookUrl": "",
+    "channel": "#general",
+    "username": "Claude Code Bot",
+    "iconEmoji": ":robot_face:",
+    "notifyOnSuccess": true,
+    "notifyOnError": true,
+    "mentionOnError": ""
+  },
+  "configSchema": "config.schema.json",
+  "enabled": false,
+  "autoload": false,
+  "priority": 5,
+  "tags": ["notifications", "slack", "messaging"],
+  "keywords": ["slack", "notification", "webhook", "alerts"],
+  "documentation": "README.md"
+}

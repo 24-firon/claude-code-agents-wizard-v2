@@ -1,0 +1,208 @@
+# ==============================================================================
+# Netlify Configuration File
+# ==============================================================================
+# Documentation: https://docs.netlify.com/configure-builds/file-based-configuration/
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Build Settings
+# ------------------------------------------------------------------------------
+[build]
+  # Base directory for build commands
+  base = "/"
+
+  # Build command
+  command = "npm run build"
+
+  # Publish directory (build output)
+  publish = "dist"
+
+  # Functions directory for Netlify Functions
+  functions = "netlify/functions"
+
+  # Edge Functions directory
+  edge_functions = "netlify/edge-functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
+  NODE_ENV = "production"
+
+# ------------------------------------------------------------------------------
+# Development Settings
+# ------------------------------------------------------------------------------
+[dev]
+  command = "npm run dev"
+  port = 3000
+  targetPort = 3000
+  publish = "dist"
+  autoLaunch = true
+
+# ------------------------------------------------------------------------------
+# Headers
+# ------------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate"
+
+# ------------------------------------------------------------------------------
+# Redirects and Rewrites
+# ------------------------------------------------------------------------------
+# SPA fallback - redirect all requests to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+# Redirect /home to /
+[[redirects]]
+  from = "/home"
+  to = "/"
+  status = 301
+  force = true
+
+# API proxy
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.example.com/:splat"
+  status = 200
+  force = false
+  headers = {X-From = "Netlify"}
+
+# Legacy URL redirects
+[[redirects]]
+  from = "/old-path"
+  to = "/new-path"
+  status = 301
+
+# Redirect with query parameters
+[[redirects]]
+  from = "/search"
+  to = "/search-results"
+  status = 302
+  query = {q = ":q"}
+
+# ------------------------------------------------------------------------------
+# Functions Configuration
+# ------------------------------------------------------------------------------
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = ["data/**"]
+
+[[functions."hello".environment]]
+  NODE_ENV = "production"
+
+# ------------------------------------------------------------------------------
+# Edge Functions Configuration
+# ------------------------------------------------------------------------------
+[[edge_functions]]
+  function = "auth"
+  path = "/admin/*"
+
+# ------------------------------------------------------------------------------
+# Plugins
+# ------------------------------------------------------------------------------
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+
+  [plugins.inputs.thresholds]
+    performance = 0.9
+    accessibility = 0.9
+    best-practices = 0.9
+    seo = 0.9
+
+[[plugins]]
+  package = "netlify-plugin-submit-sitemap"
+
+  [plugins.inputs]
+    baseUrl = "https://example.com"
+    sitemapPath = "/sitemap.xml"
+    providers = [
+      "google",
+      "bing"
+    ]
+
+# ------------------------------------------------------------------------------
+# Context-Specific Settings
+# ------------------------------------------------------------------------------
+# Production context
+[context.production]
+  command = "npm run build:production"
+
+  [context.production.environment]
+    NODE_ENV = "production"
+    NEXT_PUBLIC_API_URL = "https://api.example.com"
+
+# Deploy Preview context
+[context.deploy-preview]
+  command = "npm run build:preview"
+
+  [context.deploy-preview.environment]
+    NODE_ENV = "staging"
+    NEXT_PUBLIC_API_URL = "https://api-staging.example.com"
+
+# Branch deploy context
+[context.branch-deploy]
+  command = "npm run build:staging"
+
+# Specific branch context
+[context.staging]
+  command = "npm run build:staging"
+
+  [context.staging.environment]
+    NODE_ENV = "staging"
+
+# ------------------------------------------------------------------------------
+# Split Testing
+# ------------------------------------------------------------------------------
+# [[split_tests]]
+#   path = "/*"
+#   branches = ["main:50", "experiment:50"]
+
+# ------------------------------------------------------------------------------
+# Processing Settings
+# ------------------------------------------------------------------------------
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.images]
+  compress = true

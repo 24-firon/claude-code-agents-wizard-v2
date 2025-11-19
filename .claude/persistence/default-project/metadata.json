@@ -1,0 +1,21 @@
+{
+  "name": "default-project",
+  "description": "Default project workspace for Claude Code Agent Orchestration System",
+  "created": "2025-11-18T22:31:00.000Z",
+  "lastModified": "2025-11-18T22:31:00.000Z",
+  "version": "1.0.0",
+  "settings": {
+    "autoArchive": false,
+    "maxCompletedTodos": 100,
+    "archiveAfterDays": 30,
+    "defaultPriority": "normal",
+    "requireAssignment": false
+  },
+  "stats": {
+    "totalTodos": 0,
+    "completedTodos": 0,
+    "pendingTodos": 0,
+    "inProgressTodos": 0,
+    "blockedTodos": 0
+  }
+}

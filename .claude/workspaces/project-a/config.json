@@ -1,0 +1,111 @@
+{
+  "$schema": "https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2/schema/workspace-config",
+  "name": "project-a",
+  "displayName": "Full-Stack Web Application",
+  "description": "A modern full-stack web application built with React, TypeScript, and Node.js. Includes authentication, real-time features, and responsive design.",
+  "created": "2025-11-18T22:00:00.000Z",
+  "lastModified": "2025-11-18T22:00:00.000Z",
+  "version": "1.0.0",
+  "type": "web-application",
+  "repository": {
+    "type": "git",
+    "url": "",
+    "branch": "main"
+  },
+  "enabledAgents": [
+    "coder",
+    "tester",
+    "stuck",
+    "researcher",
+    "security-auditor",
+    "performance-optimizer"
+  ],
+  "agentConfig": {
+    "coder": {
+      "defaultLanguage": "typescript",
+      "lintingEnabled": true,
+      "formattingEnabled": true,
+      "autoImportEnabled": true,
+      "strictTypeChecking": true,
+      "frameworks": ["react", "express", "tailwindcss"],
+      "packageManager": "npm"
+    },
+    "tester": {
+      "defaultBrowser": "chromium",
+      "screenshotOnFailure": true,
+      "videoOnFailure": false,
+      "headless": true,
+      "slowMo": 0,
+      "testTimeout": 30000,
+      "navigationTimeout": 10000,
+      "screenshotPath": ".claude/screenshots/project-a"
+    },
+    "researcher": {
+      "enabledSources": ["jina", "web"],
+      "maxResults": 10,
+      "cacheResults": true,
+      "cacheDurationHours": 24
+    },
+    "security-auditor": {
+      "strictMode": true,
+      "checkDependencies": true,
+      "checkCodePatterns": true,
+      "enableSAST": true,
+      "allowedDependencies": [],
+      "blockedPatterns": ["eval(", "dangerouslySetInnerHTML"]
+    },
+    "performance-optimizer": {
+      "enableBundleAnalysis": true,
+      "enableLighthouse": true,
+      "targetMetrics": {
+        "FCP": 1800,
+        "LCP": 2500,
+        "TBT": 200,
+        "CLS": 0.1,
+        "SI": 3400
+      }
+    }
+  },
+  "settings": {
+    "autoArchive": true,
+    "maxCompletedTodos": 50,
+    "archiveAfterDays": 14,
+    "defaultPriority": "high",
+    "requireAssignment": true,
+    "enableTodoReminders": false,
+    "enableProgressTracking": true,
+    "enableTimeTracking": true
+  },
+  "environment": {
+    "nodejs": "20.x",
+    "npm": "10.x",
+    "react": "18.x",
+    "typescript": "5.x"
+  },
+  "ports": {
+    "frontend": 3000,
+    "backend": 3001,
+    "database": 5432
+  },
+  "paths": {
+    "root": ".",
+    "frontend": "./frontend",
+    "backend": "./backend",
+    "shared": "./shared",
+    "tests": "./tests",
+    "docs": "./docs"
+  },
+  "tags": ["web", "fullstack", "react", "nodejs", "typescript", "production"],
+  "team": {
+    "owner": "development-team",
+    "contributors": [],
+    "reviewers": []
+  },
+  "integrations": {
+    "ci": false,
+    "deployment": false,
+    "monitoring": false,
+    "analytics": false
+  },
+  "notes": "This is a high-priority production application. All code must pass security audit and performance optimization before deployment. Testing is mandatory for all features."
+}

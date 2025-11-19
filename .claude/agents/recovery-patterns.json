@@ -1,0 +1,490 @@
+{
+  "patterns": [
+    {
+      "id": "npm-cache-corruption-01",
+      "category": "dependency",
+      "errorPattern": "npm ERR!.*(ENOENT|EINTEGRITY|shasum check failed)",
+      "errorKeywords": ["npm ERR!", "ENOENT", "EINTEGRITY", "shasum"],
+      "context": {
+        "agent": "any",
+        "operation": "install",
+        "tools": ["npm"]
+      },
+      "confidence": 95,
+      "recovery": {
+        "steps": [
+          "Clear npm cache to remove corrupted data",
+          "Delete node_modules and package-lock.json",
+          "Reinstall dependencies fresh"
+        ],
+        "commands": [
+          "npm cache clean --force",
+          "rm -rf node_modules package-lock.json",
+          "npm install"
+        ],
+        "explanation": "npm cache corruption is a common issue that causes installation failures. Clearing the cache and reinstalling dependencies resolves this in 95% of cases."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Very common npm error, high success rate"
+      }
+    },
+    {
+      "id": "port-in-use-01",
+      "category": "port",
+      "errorPattern": "EADDRINUSE.*:(\\d+)",
+      "errorKeywords": ["EADDRINUSE", "address already in use", "port"],
+      "context": {
+        "agent": "any",
+        "operation": "start",
+        "tools": ["node", "npm", "webpack"]
+      },
+      "confidence": 98,
+      "recovery": {
+        "steps": [
+          "Find process using the port",
+          "Kill the conflicting process",
+          "Retry starting the server"
+        ],
+        "commands": [
+          "lsof -ti:PORT_NUMBER",
+          "kill -9 $(lsof -ti:PORT_NUMBER)",
+          "# Then retry the original command"
+        ],
+        "explanation": "When a port is already in use, you need to kill the process occupying it. This is usually a previously running dev server that wasn't properly stopped."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Extract port number from error and replace PORT_NUMBER in command"
+      }
+    },
+    {
+      "id": "file-not-found-package-json-01",
+      "category": "filesystem",
+      "errorPattern": "ENOENT.*package\\.json",
+      "errorKeywords": ["ENOENT", "package.json", "no such file"],
+      "context": {
+        "agent": "coder",
+        "operation": "install",
+        "tools": ["npm", "yarn"]
+      },
+      "confidence": 90,
+      "recovery": {
+        "steps": [
+          "Verify you are in the correct directory",
+          "Check if package.json exists in parent directory",
+          "If missing, initialize new package.json"
+        ],
+        "commands": [
+          "pwd",
+          "ls -la | grep package.json",
+          "npm init -y"
+        ],
+        "explanation": "This usually means you're running npm commands in the wrong directory, or the project hasn't been initialized yet."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Common when running commands in wrong directory"
+      }
+    },
+    {
+      "id": "module-not-found-01",
+      "category": "module",
+      "errorPattern": "Cannot find module|Module not found.*Error: Can't resolve",
+      "errorKeywords": ["Cannot find module", "Module not found", "Can't resolve"],
+      "context": {
+        "agent": "coder",
+        "operation": "build",
+        "tools": ["node", "webpack", "typescript"]
+      },
+      "confidence": 85,
+      "recovery": {
+        "steps": [
+          "Check if module is listed in package.json dependencies",
+          "Install the missing module",
+          "If still failing, clear cache and reinstall"
+        ],
+        "commands": [
+          "grep MODULE_NAME package.json",
+          "npm install MODULE_NAME",
+          "npm cache clean --force && npm install"
+        ],
+        "explanation": "Missing module errors occur when a dependency isn't installed. Installing the package usually resolves this. If not, cache issues may be the cause."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Extract module name from error message and replace MODULE_NAME"
+      }
+    },
+    {
+      "id": "permission-denied-01",
+      "category": "permission",
+      "errorPattern": "EACCES|permission denied",
+      "errorKeywords": ["EACCES", "permission denied", "EPERM"],
+      "context": {
+        "agent": "any",
+        "operation": "any",
+        "tools": ["npm", "node", "bash"]
+      },
+      "confidence": 80,
+      "recovery": {
+        "steps": [
+          "Check file/directory permissions",
+          "Fix ownership if needed",
+          "Alternatively, use sudo (not recommended for npm)"
+        ],
+        "commands": [
+          "ls -la FILE_OR_DIR",
+          "chmod 755 FILE_OR_DIR",
+          "# For npm global: use nvm or fix npm permissions instead of sudo"
+        ],
+        "explanation": "Permission errors occur when the user doesn't have rights to access/modify files. Fix permissions rather than using sudo, especially with npm."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Escalate if sudo seems required - may need human decision"
+      }
+    },
+    {
+      "id": "git-merge-conflict-01",
+      "category": "git",
+      "errorPattern": "CONFLICT.*Merge conflict|Automatic merge failed",
+      "errorKeywords": ["CONFLICT", "Merge conflict", "merge failed"],
+      "context": {
+        "agent": "coder",
+        "operation": "merge",
+        "tools": ["git"]
+      },
+      "confidence": 70,
+      "recovery": {
+        "steps": [
+          "Identify conflicting files",
+          "MUST escalate to stuck agent - requires manual resolution",
+          "Conflicts need human decision on which changes to keep"
+        ],
+        "commands": [
+          "git status",
+          "git diff --name-only --diff-filter=U"
+        ],
+        "explanation": "Merge conflicts require human judgment to resolve. The recovery agent cannot automatically decide which code changes to keep."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "ALWAYS escalate - below 80% confidence intentionally"
+      }
+    },
+    {
+      "id": "typescript-compilation-error-01",
+      "category": "build",
+      "errorPattern": "TS\\d{4}:|TypeScript compilation error",
+      "errorKeywords": ["TS2307", "TS2345", "TypeScript", "compilation error"],
+      "context": {
+        "agent": "coder",
+        "operation": "build",
+        "tools": ["typescript", "tsc"]
+      },
+      "confidence": 75,
+      "recovery": {
+        "steps": [
+          "Read the specific TypeScript error code and message",
+          "Check tsconfig.json configuration",
+          "Verify type definitions are installed",
+          "Common fix: install @types packages"
+        ],
+        "commands": [
+          "cat tsconfig.json",
+          "npm list | grep @types",
+          "npm install --save-dev @types/node @types/react"
+        ],
+        "explanation": "TypeScript errors often need specific fixes based on the error code. Common issues are missing type definitions or misconfigured tsconfig."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "May need escalation for complex type errors"
+      }
+    },
+    {
+      "id": "webpack-loader-missing-01",
+      "category": "build",
+      "errorPattern": "Module parse failed|You may need an appropriate loader",
+      "errorKeywords": ["Module parse failed", "appropriate loader", "webpack"],
+      "context": {
+        "agent": "coder",
+        "operation": "build",
+        "tools": ["webpack"]
+      },
+      "confidence": 88,
+      "recovery": {
+        "steps": [
+          "Identify the file type that failed to parse",
+          "Install the appropriate webpack loader",
+          "Update webpack.config.js if needed"
+        ],
+        "commands": [
+          "# For CSS: npm install --save-dev css-loader style-loader",
+          "# For images: npm install --save-dev file-loader",
+          "# For TypeScript: npm install --save-dev ts-loader"
+        ],
+        "explanation": "Webpack needs loaders to process non-JavaScript files. The error message usually indicates which file type needs a loader."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Extract file extension from error to suggest correct loader"
+      }
+    },
+    {
+      "id": "connection-refused-01",
+      "category": "network",
+      "errorPattern": "ECONNREFUSED|Connection refused",
+      "errorKeywords": ["ECONNREFUSED", "Connection refused", "connect"],
+      "context": {
+        "agent": "tester",
+        "operation": "test",
+        "tools": ["playwright", "cypress", "fetch"]
+      },
+      "confidence": 82,
+      "recovery": {
+        "steps": [
+          "Verify the server is running",
+          "Check the correct port is being used",
+          "Ensure no firewall blocking the connection",
+          "Start the server if not running"
+        ],
+        "commands": [
+          "lsof -i:PORT_NUMBER",
+          "curl http://localhost:PORT_NUMBER",
+          "npm run dev # or appropriate start command"
+        ],
+        "explanation": "Connection refused means the server isn't running or is on a different port. Start the server or fix the port configuration."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Common in testing scenarios when server not started"
+      }
+    },
+    {
+      "id": "playwright-browser-crash-01",
+      "category": "testing",
+      "errorPattern": "Target closed|Browser closed|Playwright.*crashed",
+      "errorKeywords": ["Target closed", "Browser closed", "crashed"],
+      "context": {
+        "agent": "tester",
+        "operation": "test",
+        "tools": ["playwright"]
+      },
+      "confidence": 70,
+      "recovery": {
+        "steps": [
+          "This often indicates a JavaScript error on the page",
+          "Check browser console logs",
+          "May need to adjust test timeout",
+          "Consider using slower execution"
+        ],
+        "commands": [
+          "# Add to playwright config:",
+          "# timeout: 60000",
+          "# slowMo: 100"
+        ],
+        "explanation": "Browser crashes in Playwright often occur due to JavaScript errors, memory issues, or timing problems. Requires investigation of the specific page."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Often needs escalation to investigate root cause"
+      }
+    },
+    {
+      "id": "esm-commonjs-conflict-01",
+      "category": "module",
+      "errorPattern": "require.*\\.mjs|import.*not defined|Cannot use import statement",
+      "errorKeywords": ["import statement", "require", "ESM", "CommonJS"],
+      "context": {
+        "agent": "coder",
+        "operation": "run",
+        "tools": ["node"]
+      },
+      "confidence": 85,
+      "recovery": {
+        "steps": [
+          "Check package.json for 'type' field",
+          "Set 'type': 'module' for ESM or remove for CommonJS",
+          "Or use .mjs for ESM and .cjs for CommonJS",
+          "Ensure consistent module system throughout"
+        ],
+        "commands": [
+          "grep '\"type\"' package.json",
+          "# Add to package.json: \"type\": \"module\"",
+          "# Or rename files: mv file.js file.mjs"
+        ],
+        "explanation": "ESM (import/export) and CommonJS (require) don't mix well. You need to configure your project to use one consistently."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Node.js module system can be confusing - may need escalation"
+      }
+    },
+    {
+      "id": "peer-dependency-conflict-01",
+      "category": "dependency",
+      "errorPattern": "peer dependency|ERESOLVE unable to resolve dependency tree",
+      "errorKeywords": ["peer dependency", "ERESOLVE", "dependency tree"],
+      "context": {
+        "agent": "coder",
+        "operation": "install",
+        "tools": ["npm"]
+      },
+      "confidence": 78,
+      "recovery": {
+        "steps": [
+          "Check which peer dependencies are conflicting",
+          "Try installing with --legacy-peer-deps flag",
+          "Or use --force flag (less safe)",
+          "Best: Update packages to compatible versions"
+        ],
+        "commands": [
+          "npm install --legacy-peer-deps",
+          "# Or check for updates: npm outdated"
+        ],
+        "explanation": "Peer dependency conflicts occur when packages require incompatible versions. Using --legacy-peer-deps bypasses strict checking."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "May want escalation for production - --legacy-peer-deps is a workaround"
+      }
+    },
+    {
+      "id": "out-of-memory-01",
+      "category": "build",
+      "errorPattern": "JavaScript heap out of memory|FATAL ERROR.*heap",
+      "errorKeywords": ["heap out of memory", "FATAL ERROR", "allocation failed"],
+      "context": {
+        "agent": "coder",
+        "operation": "build",
+        "tools": ["node", "webpack"]
+      },
+      "confidence": 92,
+      "recovery": {
+        "steps": [
+          "Increase Node.js memory limit",
+          "Add --max-old-space-size flag",
+          "Or set via NODE_OPTIONS environment variable"
+        ],
+        "commands": [
+          "node --max-old-space-size=4096 script.js",
+          "# Or in package.json scripts:",
+          "# \"build\": \"NODE_OPTIONS=--max-old-space-size=4096 webpack\""
+        ],
+        "explanation": "Node.js has a default memory limit. Large builds or data processing may need more memory allocated."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Very common with large webpack builds"
+      }
+    },
+    {
+      "id": "git-detached-head-01",
+      "category": "git",
+      "errorPattern": "HEAD detached|You are in 'detached HEAD' state",
+      "errorKeywords": ["detached HEAD", "HEAD detached"],
+      "context": {
+        "agent": "coder",
+        "operation": "git",
+        "tools": ["git"]
+      },
+      "confidence": 75,
+      "recovery": {
+        "steps": [
+          "Understand you're viewing a specific commit, not a branch",
+          "To keep changes: create a new branch",
+          "To discard and return: checkout original branch"
+        ],
+        "commands": [
+          "git branch new-branch-name",
+          "git checkout new-branch-name",
+          "# Or to discard: git checkout main"
+        ],
+        "explanation": "Detached HEAD means you're not on a branch. Any commits made won't be part of a branch unless you create one."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "May escalate if user is confused about state"
+      }
+    },
+    {
+      "id": "env-file-missing-01",
+      "category": "filesystem",
+      "errorPattern": "ENOENT.*\\.env|dotenv.*not found",
+      "errorKeywords": ["ENOENT", ".env", "dotenv", "environment"],
+      "context": {
+        "agent": "coder",
+        "operation": "start",
+        "tools": ["node", "dotenv"]
+      },
+      "confidence": 90,
+      "recovery": {
+        "steps": [
+          "Check if .env.example or .env.sample exists",
+          "Copy example to .env",
+          "Or create new .env file with required variables"
+        ],
+        "commands": [
+          "ls -la | grep .env",
+          "cp .env.example .env",
+          "# Or: touch .env"
+        ],
+        "explanation": ".env files contain environment variables and are usually not committed to git. You need to create one locally based on .env.example."
+      },
+      "metadata": {
+        "added": "2025-11-18",
+        "lastUsed": null,
+        "successCount": 0,
+        "notes": "Common for projects using environment variables"
+      }
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2025-11-18",
+    "lastUpdated": "2025-11-18",
+    "totalPatterns": 15,
+    "categories": {
+      "dependency": 4,
+      "port": 1,
+      "filesystem": 3,
+      "module": 2,
+      "permission": 1,
+      "git": 2,
+      "build": 3,
+      "network": 1,
+      "testing": 1
+    },
+    "notes": "Initial pattern database with common development errors. Will grow as new patterns are learned from human resolutions."
+  }
+}

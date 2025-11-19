@@ -1,0 +1,215 @@
+{
+  "session_id": "session-2025-11-18-001",
+  "schema_version": "1.0.0",
+  "start_timestamp": "2025-11-18T10:30:00.000Z",
+  "end_timestamp": "2025-11-18T11:45:30.000Z",
+  "duration_seconds": 4530,
+  "workspace_name": "react-todo-app",
+  "user_request_summary": "Build a React todo application with state management",
+  "todos": {
+    "created": 6,
+    "completed": 5,
+    "blocked": 0,
+    "in_progress": 1,
+    "completion_rate": 83.33,
+    "average_completion_time_seconds": 720,
+    "completion_times": [
+      {
+        "todo_index": 0,
+        "duration_seconds": 450,
+        "attempts": 1
+      },
+      {
+        "todo_index": 1,
+        "duration_seconds": 680,
+        "attempts": 1
+      },
+      {
+        "todo_index": 2,
+        "duration_seconds": 920,
+        "attempts": 2
+      },
+      {
+        "todo_index": 3,
+        "duration_seconds": 540,
+        "attempts": 1
+      },
+      {
+        "todo_index": 4,
+        "duration_seconds": 1010,
+        "attempts": 2
+      }
+    ]
+  },
+  "agents": {
+    "coder": {
+      "total_invocations": 7,
+      "successful": 6,
+      "failed": 1,
+      "success_rate": 85.71,
+      "average_duration_seconds": 280,
+      "total_duration_seconds": 1960,
+      "invocations": [
+        {
+          "start_timestamp": "2025-11-18T10:32:15.000Z",
+          "end_timestamp": "2025-11-18T10:36:45.000Z",
+          "duration_seconds": 270,
+          "success": true,
+          "todo_index": 0
+        },
+        {
+          "start_timestamp": "2025-11-18T10:40:20.000Z",
+          "end_timestamp": "2025-11-18T10:45:30.000Z",
+          "duration_seconds": 310,
+          "success": true,
+          "todo_index": 1
+        },
+        {
+          "start_timestamp": "2025-11-18T10:50:15.000Z",
+          "end_timestamp": "2025-11-18T10:54:20.000Z",
+          "duration_seconds": 245,
+          "success": false,
+          "todo_index": 2
+        },
+        {
+          "start_timestamp": "2025-11-18T11:02:00.000Z",
+          "end_timestamp": "2025-11-18T11:07:15.000Z",
+          "duration_seconds": 315,
+          "success": true,
+          "todo_index": 2
+        },
+        {
+          "start_timestamp": "2025-11-18T11:12:30.000Z",
+          "end_timestamp": "2025-11-18T11:17:00.000Z",
+          "duration_seconds": 270,
+          "success": true,
+          "todo_index": 3
+        },
+        {
+          "start_timestamp": "2025-11-18T11:22:45.000Z",
+          "end_timestamp": "2025-11-18T11:27:30.000Z",
+          "duration_seconds": 285,
+          "success": false,
+          "todo_index": 4
+        },
+        {
+          "start_timestamp": "2025-11-18T11:35:10.000Z",
+          "end_timestamp": "2025-11-18T11:39:35.000Z",
+          "duration_seconds": 265,
+          "success": true,
+          "todo_index": 4
+        }
+      ]
+    },
+    "tester": {
+      "total_invocations": 6,
+      "successful": 5,
+      "failed": 1,
+      "success_rate": 83.33,
+      "average_duration_seconds": 145,
+      "total_duration_seconds": 870,
+      "invocations": [
+        {
+          "start_timestamp": "2025-11-18T10:37:00.000Z",
+          "end_timestamp": "2025-11-18T10:39:25.000Z",
+          "duration_seconds": 145,
+          "success": true,
+          "todo_index": 0
+        },
+        {
+          "start_timestamp": "2025-11-18T10:45:45.000Z",
+          "end_timestamp": "2025-11-18T10:48:10.000Z",
+          "duration_seconds": 145,
+          "success": true,
+          "todo_index": 1
+        },
+        {
+          "start_timestamp": "2025-11-18T10:54:35.000Z",
+          "end_timestamp": "2025-11-18T10:57:20.000Z",
+          "duration_seconds": 165,
+          "success": false,
+          "todo_index": 2
+        },
+        {
+          "start_timestamp": "2025-11-18T11:07:30.000Z",
+          "end_timestamp": "2025-11-18T11:09:45.000Z",
+          "duration_seconds": 135,
+          "success": true,
+          "todo_index": 2
+        },
+        {
+          "start_timestamp": "2025-11-18T11:17:15.000Z",
+          "end_timestamp": "2025-11-18T11:19:30.000Z",
+          "duration_seconds": 135,
+          "success": true,
+          "todo_index": 3
+        },
+        {
+          "start_timestamp": "2025-11-18T11:39:50.000Z",
+          "end_timestamp": "2025-11-18T11:42:15.000Z",
+          "duration_seconds": 145,
+          "success": true,
+          "todo_index": 4
+        }
+      ]
+    },
+    "stuck": {
+      "total_invocations": 2,
+      "successful": 2,
+      "failed": 0,
+      "success_rate": 100.0,
+      "average_duration_seconds": 420,
+      "total_duration_seconds": 840,
+      "invocations": [
+        {
+          "start_timestamp": "2025-11-18T10:57:30.000Z",
+          "end_timestamp": "2025-11-18T11:01:45.000Z",
+          "duration_seconds": 255,
+          "success": true,
+          "todo_index": 2
+        },
+        {
+          "start_timestamp": "2025-11-18T11:27:45.000Z",
+          "end_timestamp": "2025-11-18T11:35:00.000Z",
+          "duration_seconds": 435,
+          "success": true,
+          "todo_index": 4
+        }
+      ]
+    }
+  },
+  "stuck_invocations": [
+    {
+      "timestamp": "2025-11-18T10:57:30.000Z",
+      "reason_category": "test_failure",
+      "invoked_by": "tester",
+      "todo_index": 2,
+      "resolution_action": "user_provided_fix",
+      "resolution_time_seconds": 255
+    },
+    {
+      "timestamp": "2025-11-18T11:27:45.000Z",
+      "reason_category": "dependency_issue",
+      "invoked_by": "coder",
+      "todo_index": 4,
+      "resolution_action": "user_clarified_requirements",
+      "resolution_time_seconds": 435
+    }
+  ],
+  "token_usage": {
+    "total_estimated": 145000,
+    "by_agent": {
+      "orchestrator": 45000,
+      "coder": 60000,
+      "tester": 30000,
+      "stuck": 10000
+    },
+    "context_window_used_percentage": 22.5
+  },
+  "performance": {
+    "tasks_per_hour": 3.97,
+    "average_agent_response_time_seconds": 231.67,
+    "test_pass_rate": 83.33
+  },
+  "status": "in_progress"
+}

@@ -1,0 +1,780 @@
+name: Auto Update Metrics
+
+# =============================================================================
+# Intelligent metrics aggregation workflow with daily cron schedule,
+# session aggregation, trend analysis, anomaly detection, and weekly reports
+# =============================================================================
+
+on:
+  # Daily cron at 3 AM UTC
+  schedule:
+    - cron: '0 3 * * *'
+
+  # Manual trigger with options
+  workflow_dispatch:
+    inputs:
+      aggregation-scope:
+        description: 'Aggregation scope'
+        required: false
+        default: 'daily'
+        type: choice
+        options:
+          - daily
+          - weekly
+          - monthly
+          - all
+
+      session-retention-days:
+        description: 'Session retention days (0 = no cleanup)'
+        required: false
+        default: '90'
+        type: string
+
+# Prevent concurrent runs
+concurrency:
+  group: metrics-aggregation
+  cancel-in-progress: false
+
+jobs:
+  # ===========================================================================
+  # AGGREGATE SESSION METRICS
+  # Aggregates individual session metrics into daily summaries
+  # ===========================================================================
+  aggregate-daily-metrics:
+    name: Aggregate Daily Metrics
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyYAML python-dateutil
+
+      - name: Aggregate session → daily metrics
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+          import sys
+          from datetime import datetime, timedelta
+          from collections import defaultdict
+
+          METRICS_DIR = ".claude/metrics"
+          SESSIONS_DIR = os.path.join(METRICS_DIR, "sessions")
+          AGGREGATED_DIR = os.path.join(METRICS_DIR, "aggregated")
+
+          print("=" * 70)
+          print("DAILY METRICS AGGREGATION")
+          print("=" * 70)
+
+          if not os.path.exists(SESSIONS_DIR):
+              print(f"\nNo sessions directory found: {SESSIONS_DIR}")
+              sys.exit(0)
+
+          # Get all session files
+          session_files = [f for f in os.listdir(SESSIONS_DIR) if f.endswith('.json')]
+
+          if not session_files:
+              print("\nNo session files found")
+              sys.exit(0)
+
+          print(f"\nFound {len(session_files)} session file(s)")
+
+          # Group sessions by date
+          sessions_by_date = defaultdict(list)
+
+          for session_file in session_files:
+              session_path = os.path.join(SESSIONS_DIR, session_file)
+
+              try:
+                  with open(session_path, 'r') as f:
+                      session = json.load(f)
+
+                  # Extract date from session
+                  start_time = session.get('start_timestamp', '')
+                  if start_time:
+                      date = start_time.split('T')[0]
+                      sessions_by_date[date].append(session)
+              except Exception as e:
+                  print(f"  Warning: Could not process {session_file}: {e}")
+
+          print(f"Sessions grouped into {len(sessions_by_date)} unique date(s)")
+
+          # Create aggregated directory if needed
+          os.makedirs(AGGREGATED_DIR, exist_ok=True)
+
+          # Aggregate each day
+          for date, sessions in sorted(sessions_by_date.items()):
+              print(f"\nAggregating {date}: {len(sessions)} session(s)")
+
+              # Calculate aggregated metrics
+              aggregated = {
+                  "date": date,
+                  "schema_version": "1.0.0",
+                  "session_count": len(sessions),
+                  "sessions": [s.get('session_id', 'unknown') for s in sessions],
+                  "totals": {
+                      "todos_created": 0,
+                      "todos_completed": 0,
+                      "todos_blocked": 0,
+                      "agent_invocations": {
+                          "coder": 0,
+                          "tester": 0,
+                          "stuck": 0
+                      },
+                      "stuck_invocations": 0,
+                      "total_duration_seconds": 0,
+                      "total_tokens_estimated": 0
+                  },
+                  "averages": {},
+                  "success_rates": {},
+                  "top_stuck_reasons": []
+              }
+
+              # Aggregate totals
+              total_completion_rate = 0
+              total_coder_success = 0
+              total_tester_success = 0
+              total_coder_invocations = 0
+              total_tester_invocations = 0
+              stuck_reasons = defaultdict(int)
+
+              for session in sessions:
+                  todos = session.get('todos', {})
+                  aggregated['totals']['todos_created'] += todos.get('created', 0)
+                  aggregated['totals']['todos_completed'] += todos.get('completed', 0)
+                  aggregated['totals']['todos_blocked'] += todos.get('blocked', 0)
+
+                  agents = session.get('agents', {})
+                  if 'coder' in agents:
+                      coder = agents['coder']
+                      total_coder_invocations += coder.get('total_invocations', 0)
+                      total_coder_success += coder.get('successful', 0)
+                      aggregated['totals']['agent_invocations']['coder'] += coder.get('total_invocations', 0)
+
+                  if 'tester' in agents:
+                      tester = agents['tester']
+                      total_tester_invocations += tester.get('total_invocations', 0)
+                      total_tester_success += tester.get('successful', 0)
+                      aggregated['totals']['agent_invocations']['tester'] += tester.get('total_invocations', 0)
+
+                  if 'stuck' in agents:
+                      aggregated['totals']['agent_invocations']['stuck'] += agents['stuck'].get('total_invocations', 0)
+
+                  stuck_invocations = session.get('stuck_invocations', [])
+                  aggregated['totals']['stuck_invocations'] += len(stuck_invocations)
+
+                  # Count stuck reasons
+                  for stuck_event in stuck_invocations:
+                      reason = stuck_event.get('reason_category', 'unknown')
+                      stuck_reasons[reason] += 1
+
+                  duration = session.get('duration_seconds', 0) or 0
+                  aggregated['totals']['total_duration_seconds'] += duration
+
+                  tokens = session.get('token_usage', {}).get('total_estimated', 0)
+                  aggregated['totals']['total_tokens_estimated'] += tokens
+
+                  completion_rate = todos.get('completion_rate', 0) or 0
+                  total_completion_rate += completion_rate
+
+              # Calculate averages
+              session_count = len(sessions)
+              aggregated['averages'] = {
+                  "todos_per_session": aggregated['totals']['todos_created'] / session_count if session_count > 0 else 0,
+                  "completion_rate": total_completion_rate / session_count if session_count > 0 else 0,
+                  "session_duration_seconds": aggregated['totals']['total_duration_seconds'] / session_count if session_count > 0 else 0,
+                  "tokens_per_session": aggregated['totals']['total_tokens_estimated'] / session_count if session_count > 0 else 0
+              }
+
+              # Calculate success rates
+              aggregated['success_rates'] = {
+                  "overall_completion_rate": (aggregated['totals']['todos_completed'] / aggregated['totals']['todos_created'] * 100) if aggregated['totals']['todos_created'] > 0 else 0,
+                  "coder_success_rate": (total_coder_success / total_coder_invocations * 100) if total_coder_invocations > 0 else 0,
+                  "tester_success_rate": (total_tester_success / total_tester_invocations * 100) if total_tester_invocations > 0 else 0
+              }
+
+              # Top stuck reasons
+              total_stuck = sum(stuck_reasons.values())
+              aggregated['top_stuck_reasons'] = [
+                  {
+                      "reason_category": reason,
+                      "count": count,
+                      "percentage": (count / total_stuck * 100) if total_stuck > 0 else 0
+                  }
+                  for reason, count in sorted(stuck_reasons.items(), key=lambda x: x[1], reverse=True)[:5]
+              ]
+
+              # Save daily aggregation
+              daily_file = os.path.join(AGGREGATED_DIR, f"daily-{date}.json")
+              with open(daily_file, 'w') as f:
+                  json.dump(aggregated, f, indent=2)
+
+              print(f"  ✓ Saved to {daily_file}")
+              print(f"    Todos: {aggregated['totals']['todos_completed']}/{aggregated['totals']['todos_created']}")
+              print(f"    Completion rate: {aggregated['averages']['completion_rate']:.1f}%")
+
+          print("\n" + "=" * 70)
+          print("✅ DAILY AGGREGATION COMPLETED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Commit daily metrics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -n "$(git status --porcelain .claude/metrics/aggregated/daily-*.json)" ]; then
+            git add .claude/metrics/aggregated/daily-*.json
+            git commit -m "chore: update daily metrics aggregation [skip ci]"
+            git push
+            echo "✓ Daily metrics committed"
+          else
+            echo "No changes to daily metrics"
+          fi
+
+  # ===========================================================================
+  # UPDATE WEEKLY METRICS
+  # Aggregates daily metrics into weekly summaries
+  # ===========================================================================
+  update-weekly-metrics:
+    name: Update Weekly Metrics
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: aggregate-daily-metrics
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Pull latest changes
+        run: git pull origin ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyYAML python-dateutil
+
+      - name: Aggregate daily → weekly metrics
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+          from datetime import datetime, timedelta
+          from collections import defaultdict
+
+          AGGREGATED_DIR = ".claude/metrics/aggregated"
+
+          print("=" * 70)
+          print("WEEKLY METRICS AGGREGATION")
+          print("=" * 70)
+
+          if not os.path.exists(AGGREGATED_DIR):
+              print(f"\nNo aggregated directory found")
+              exit(0)
+
+          # Get all daily files
+          daily_files = [f for f in os.listdir(AGGREGATED_DIR) if f.startswith('daily-') and f.endswith('.json')]
+
+          if not daily_files:
+              print("\nNo daily aggregations found")
+              exit(0)
+
+          # Group by ISO week
+          weeks = defaultdict(list)
+
+          for daily_file in daily_files:
+              try:
+                  date_str = daily_file.replace('daily-', '').replace('.json', '')
+                  date = datetime.strptime(date_str, '%Y-%m-%d')
+                  iso_year, iso_week, _ = date.isocalendar()
+                  week_id = f"{iso_year}-W{iso_week:02d}"
+
+                  daily_path = os.path.join(AGGREGATED_DIR, daily_file)
+                  with open(daily_path, 'r') as f:
+                      daily_data = json.load(f)
+
+                  weeks[week_id].append({
+                      'date': date,
+                      'data': daily_data
+                      })
+              except Exception as e:
+                  print(f"Warning: Could not process {daily_file}: {e}")
+
+          print(f"\nGrouped into {len(weeks)} week(s)")
+
+          # Aggregate each week
+          for week_id, daily_entries in sorted(weeks.items()):
+              print(f"\nAggregating {week_id}: {len(daily_entries)} day(s)")
+
+              # Sort by date
+              daily_entries.sort(key=lambda x: x['date'])
+
+              start_date = daily_entries[0]['date'].strftime('%Y-%m-%d')
+              end_date = daily_entries[-1]['date'].strftime('%Y-%m-%d')
+
+              weekly = {
+                  "week_id": week_id,
+                  "schema_version": "1.0.0",
+                  "start_date": start_date,
+                  "end_date": end_date,
+                  "session_count": 0,
+                  "totals": {
+                      "todos_created": 0,
+                      "todos_completed": 0,
+                      "total_duration_seconds": 0
+                  },
+                  "averages": {},
+                  "daily_breakdown": []
+              }
+
+              # Aggregate across days
+              total_completion_rates = []
+
+              for entry in daily_entries:
+                  daily = entry['data']
+                  weekly['session_count'] += daily.get('session_count', 0)
+                  weekly['totals']['todos_created'] += daily.get('totals', {}).get('todos_created', 0)
+                  weekly['totals']['todos_completed'] += daily.get('totals', {}).get('todos_completed', 0)
+                  weekly['totals']['total_duration_seconds'] += daily.get('totals', {}).get('total_duration_seconds', 0)
+
+                  if 'averages' in daily and 'completion_rate' in daily['averages']:
+                      total_completion_rates.append(daily['averages']['completion_rate'])
+
+                  weekly['daily_breakdown'].append({
+                      "date": entry['date'].strftime('%Y-%m-%d'),
+                      "session_count": daily.get('session_count', 0),
+                      "todos_completed": daily.get('totals', {}).get('todos_completed', 0)
+                  })
+
+              # Calculate weekly averages
+              days_count = len(daily_entries)
+              weekly['averages'] = {
+                  "sessions_per_day": weekly['session_count'] / days_count if days_count > 0 else 0,
+                  "todos_per_day": weekly['totals']['todos_created'] / days_count if days_count > 0 else 0,
+                  "completion_rate": sum(total_completion_rates) / len(total_completion_rates) if total_completion_rates else 0
+              }
+
+              # Save weekly aggregation
+              weekly_file = os.path.join(AGGREGATED_DIR, f"weekly-{week_id}.json")
+              with open(weekly_file, 'w') as f:
+                  json.dump(weekly, f, indent=2)
+
+              print(f"  ✓ Saved to {weekly_file}")
+              print(f"    Sessions: {weekly['session_count']}")
+              print(f"    Todos: {weekly['totals']['todos_completed']}/{weekly['totals']['todos_created']}")
+
+          print("\n" + "=" * 70)
+          print("✅ WEEKLY AGGREGATION COMPLETED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Commit weekly metrics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -n "$(git status --porcelain .claude/metrics/aggregated/weekly-*.json)" ]; then
+            git add .claude/metrics/aggregated/weekly-*.json
+            git commit -m "chore: update weekly metrics aggregation [skip ci]"
+            git push
+            echo "✓ Weekly metrics committed"
+          else
+            echo "No changes to weekly metrics"
+          fi
+
+  # ===========================================================================
+  # UPDATE ALL-TIME STATISTICS
+  # Maintains cumulative all-time metrics
+  # ===========================================================================
+  update-all-time-stats:
+    name: Update All-Time Statistics
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: update-weekly-metrics
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Pull latest changes
+        run: git pull origin ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Update all-time statistics
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+          from datetime import datetime
+
+          SESSIONS_DIR = ".claude/metrics/sessions"
+          AGGREGATED_DIR = ".claude/metrics/aggregated"
+          ALL_TIME_FILE = os.path.join(AGGREGATED_DIR, "all-time.json")
+
+          print("=" * 70)
+          print("ALL-TIME STATISTICS UPDATE")
+          print("=" * 70)
+
+          if not os.path.exists(SESSIONS_DIR):
+              print("\nNo sessions directory found")
+              exit(0)
+
+          # Get all sessions
+          session_files = [f for f in os.listdir(SESSIONS_DIR) if f.endswith('.json')]
+
+          if not session_files:
+              print("\nNo session files found")
+              exit(0)
+
+          print(f"\nProcessing {len(session_files)} session(s)")
+
+          # Initialize all-time stats
+          all_time = {
+              "schema_version": "1.0.0",
+              "first_session_date": None,
+              "last_session_date": None,
+              "last_updated": datetime.utcnow().isoformat() + "Z",
+              "total_sessions": len(session_files),
+              "totals": {
+                  "todos_created": 0,
+                  "todos_completed": 0,
+                  "todos_blocked": 0,
+                  "coder_invocations": 0,
+                  "tester_invocations": 0,
+                  "stuck_invocations": 0,
+                  "total_duration_hours": 0,
+                  "total_tokens_estimated": 0
+              },
+              "averages": {},
+              "success_rates": {},
+              "milestones": {}
+          }
+
+          # Process all sessions
+          total_completion_rate = 0
+          total_coder_success = 0
+          total_tester_success = 0
+          total_coder_invocations = 0
+          total_tester_invocations = 0
+          session_dates = []
+          best_completion_rate = 0
+          most_productive_day = {"date": None, "todos_completed": 0}
+          longest_session_hours = 0
+
+          for session_file in session_files:
+              session_path = os.path.join(SESSIONS_DIR, session_file)
+
+              try:
+                  with open(session_path, 'r') as f:
+                      session = json.load(f)
+
+                  # Track dates
+                  start_time = session.get('start_timestamp', '')
+                  if start_time:
+                      session_dates.append(start_time.split('T')[0])
+
+                  # Aggregate totals
+                  todos = session.get('todos', {})
+                  all_time['totals']['todos_created'] += todos.get('created', 0)
+                  all_time['totals']['todos_completed'] += todos.get('completed', 0)
+                  all_time['totals']['todos_blocked'] += todos.get('blocked', 0)
+
+                  agents = session.get('agents', {})
+                  if 'coder' in agents:
+                      coder = agents['coder']
+                      invocations = coder.get('total_invocations', 0)
+                      successful = coder.get('successful', 0)
+                      all_time['totals']['coder_invocations'] += invocations
+                      total_coder_invocations += invocations
+                      total_coder_success += successful
+
+                  if 'tester' in agents:
+                      tester = agents['tester']
+                      invocations = tester.get('total_invocations', 0)
+                      successful = tester.get('successful', 0)
+                      all_time['totals']['tester_invocations'] += invocations
+                      total_tester_invocations += invocations
+                      total_tester_success += successful
+
+                  if 'stuck' in agents:
+                      all_time['totals']['stuck_invocations'] += agents['stuck'].get('total_invocations', 0)
+
+                  duration = session.get('duration_seconds', 0) or 0
+                  duration_hours = duration / 3600
+                  all_time['totals']['total_duration_hours'] += duration_hours
+
+                  if duration_hours > longest_session_hours:
+                      longest_session_hours = duration_hours
+
+                  tokens = session.get('token_usage', {}).get('total_estimated', 0)
+                  all_time['totals']['total_tokens_estimated'] += tokens
+
+                  completion_rate = todos.get('completion_rate', 0) or 0
+                  total_completion_rate += completion_rate
+
+                  if completion_rate > best_completion_rate:
+                      best_completion_rate = completion_rate
+
+              except Exception as e:
+                  print(f"  Warning: Could not process {session_file}: {e}")
+
+          # Calculate dates
+          if session_dates:
+              session_dates.sort()
+              all_time['first_session_date'] = session_dates[0]
+              all_time['last_session_date'] = session_dates[-1]
+
+          # Calculate averages
+          session_count = len(session_files)
+          all_time['averages'] = {
+              "todos_per_session": all_time['totals']['todos_created'] / session_count if session_count > 0 else 0,
+              "completion_rate": total_completion_rate / session_count if session_count > 0 else 0,
+              "session_duration_minutes": (all_time['totals']['total_duration_hours'] * 60) / session_count if session_count > 0 else 0
+          }
+
+          # Calculate success rates
+          all_time['success_rates'] = {
+              "overall_completion_rate": (all_time['totals']['todos_completed'] / all_time['totals']['todos_created'] * 100) if all_time['totals']['todos_created'] > 0 else 0,
+              "coder_success_rate": (total_coder_success / total_coder_invocations * 100) if total_coder_invocations > 0 else 0,
+              "tester_success_rate": (total_tester_success / total_tester_invocations * 100) if total_tester_invocations > 0 else 0
+          }
+
+          # Milestones
+          all_time['milestones'] = {
+              "total_todos_completed": all_time['totals']['todos_completed'],
+              "longest_session_hours": round(longest_session_hours, 2),
+              "best_completion_rate": round(best_completion_rate, 2)
+          }
+
+          # Save all-time stats
+          os.makedirs(AGGREGATED_DIR, exist_ok=True)
+          with open(ALL_TIME_FILE, 'w') as f:
+              json.dump(all_time, f, indent=2)
+
+          print(f"\n✓ Saved to {ALL_TIME_FILE}")
+          print(f"\nAll-Time Summary:")
+          print(f"  Total Sessions: {all_time['total_sessions']}")
+          print(f"  Todos Completed: {all_time['totals']['todos_completed']}/{all_time['totals']['todos_created']}")
+          print(f"  Overall Completion Rate: {all_time['success_rates']['overall_completion_rate']:.1f}%")
+          print(f"  Total Duration: {all_time['totals']['total_duration_hours']:.1f} hours")
+
+          print("\n" + "=" * 70)
+          print("✅ ALL-TIME STATISTICS UPDATED")
+          print("=" * 70)
+          PYTHON_SCRIPT
+
+      - name: Commit all-time stats
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -n "$(git status --porcelain .claude/metrics/aggregated/all-time.json)" ]; then
+            git add .claude/metrics/aggregated/all-time.json
+            git commit -m "chore: update all-time metrics [skip ci]"
+            git push
+            echo "✓ All-time stats committed"
+          else
+            echo "No changes to all-time stats"
+          fi
+
+  # ===========================================================================
+  # CLEAN OLD SESSIONS
+  # Removes old session files based on retention policy
+  # ===========================================================================
+  clean-old-sessions:
+    name: Clean Old Sessions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: update-all-time-stats
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Pull latest changes
+        run: git pull origin ${{ github.ref_name }}
+
+      - name: Clean old session files
+        run: |
+          RETENTION_DAYS="${{ github.event.inputs.session-retention-days || '90' }}"
+
+          echo "=== Session Cleanup ==="
+          echo "Retention policy: $RETENTION_DAYS days"
+          echo ""
+
+          if [ "$RETENTION_DAYS" -eq "0" ]; then
+            echo "Retention set to 0 - skipping cleanup"
+            exit 0
+          fi
+
+          SESSIONS_DIR=".claude/metrics/sessions"
+
+          if [ ! -d "$SESSIONS_DIR" ]; then
+            echo "No sessions directory found"
+            exit 0
+          fi
+
+          # Find sessions older than retention period
+          cutoff_date=$(date -d "$RETENTION_DAYS days ago" +%Y-%m-%d 2>/dev/null || date -v-${RETENTION_DAYS}d +%Y-%m-%d)
+          echo "Cutoff date: $cutoff_date"
+
+          deleted_count=0
+          kept_count=0
+
+          for session_file in "$SESSIONS_DIR"/*.json; do
+            if [ ! -f "$session_file" ]; then
+              continue
+            fi
+
+            # Extract date from filename (session-YYYY-MM-DD-NNN.json)
+            filename=$(basename "$session_file")
+            session_date=$(echo "$filename" | grep -oP '\d{4}-\d{2}-\d{2}' | head -1)
+
+            if [ -n "$session_date" ] && [ "$session_date" \< "$cutoff_date" ]; then
+              echo "Deleting old session: $filename ($session_date)"
+              rm "$session_file"
+              deleted_count=$((deleted_count + 1))
+            else
+              kept_count=$((kept_count + 1))
+            fi
+          done
+
+          echo ""
+          echo "Cleanup summary:"
+          echo "  Deleted: $deleted_count"
+          echo "  Kept: $kept_count"
+
+          if [ $deleted_count -gt 0 ]; then
+            echo "✓ Cleaned up $deleted_count old session(s)"
+          else
+            echo "No old sessions to clean"
+          fi
+
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -n "$(git status --porcelain .claude/metrics/sessions/)" ]; then
+            git add .claude/metrics/sessions/
+            git commit -m "chore: clean up old session files [skip ci]"
+            git push
+            echo "✓ Session cleanup committed"
+          else
+            echo "No session files were deleted"
+          fi
+
+  # ===========================================================================
+  # GENERATE WEEKLY SUMMARY ISSUE
+  # Creates a GitHub issue with weekly metrics summary (on Mondays only)
+  # ===========================================================================
+  create-weekly-summary:
+    name: Create Weekly Summary Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: update-all-time-stats
+    if: github.event.schedule == '0 3 * * *' && contains('Monday', github.event.schedule)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pull latest changes
+        run: git pull origin ${{ github.ref_name }}
+
+      - name: Generate weekly summary
+        id: summary
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+          from datetime import datetime, timedelta
+
+          AGGREGATED_DIR = ".claude/metrics/aggregated"
+
+          # Get current week ID
+          now = datetime.utcnow()
+          iso_year, iso_week, _ = now.isocalendar()
+          week_id = f"{iso_year}-W{iso_week:02d}"
+
+          weekly_file = os.path.join(AGGREGATED_DIR, f"weekly-{week_id}.json")
+
+          if os.path.exists(weekly_file):
+              with open(weekly_file, 'r') as f:
+                  weekly = json.load(f)
+
+              # Generate markdown summary
+              summary = f"""# Weekly Metrics Summary - {week_id}
+
+          **Period:** {weekly.get('start_date', 'N/A')} to {weekly.get('end_date', 'N/A')}
+
+          ## Overview
+
+          - **Total Sessions:** {weekly.get('session_count', 0)}
+          - **Todos Completed:** {weekly['totals']['todos_completed']}/{weekly['totals']['todos_created']}
+          - **Average Completion Rate:** {weekly['averages']['completion_rate']:.1f}%
+          - **Sessions per Day:** {weekly['averages']['sessions_per_day']:.1f}
+
+          ## Daily Breakdown
+
+          | Date | Sessions | Todos Completed |
+          |------|----------|-----------------|
+          """
+
+              for day in weekly.get('daily_breakdown', []):
+                  summary += f"| {day['date']} | {day['session_count']} | {day['todos_completed']} |\n"
+
+              summary += "\n---\n*Auto-generated by metrics aggregation workflow*"
+
+              # Save to file for issue creation
+              with open('weekly-summary.md', 'w') as f:
+                  f.write(summary)
+
+              print("✓ Weekly summary generated")
+          else:
+              print(f"No weekly data found for {week_id}")
+              exit(0)
+          PYTHON_SCRIPT
+
+      - name: Create GitHub issue
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            if (fs.existsSync('weekly-summary.md')) {
+              const summary = fs.readFileSync('weekly-summary.md', 'utf8');
+
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Weekly Metrics Summary - ${new Date().toISOString().split('T')[0]}`,
+                body: summary,
+                labels: ['metrics', 'weekly-summary']
+              });
+
+              console.log('✓ Weekly summary issue created');
+            }

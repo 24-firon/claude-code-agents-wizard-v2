@@ -1,0 +1,109 @@
+# ==============================================================================
+# Kubernetes Service
+# ==============================================================================
+# This manifest defines services for exposing the application
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# LoadBalancer Service (for cloud providers)
+# ------------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-loadbalancer
+  namespace: default
+  labels:
+    app: my-app
+  annotations:
+    # AWS specific annotations
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+    # GCP specific annotations
+    cloud.google.com/load-balancer-type: "External"
+
+    # Azure specific annotations
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+spec:
+  type: LoadBalancer
+  selector:
+    app: my-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: http
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# ------------------------------------------------------------------------------
+# ClusterIP Service (internal access)
+# ------------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+  namespace: default
+  labels:
+    app: my-app
+spec:
+  type: ClusterIP
+  selector:
+    app: my-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: http
+  sessionAffinity: None
+
+---
+# ------------------------------------------------------------------------------
+# Headless Service (for StatefulSet)
+# ------------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-headless
+  namespace: default
+  labels:
+    app: my-app
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: my-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: http
+
+---
+# ------------------------------------------------------------------------------
+# NodePort Service (for development/testing)
+# ------------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-nodeport
+  namespace: default
+  labels:
+    app: my-app
+spec:
+  type: NodePort
+  selector:
+    app: my-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: http
+      nodePort: 30080

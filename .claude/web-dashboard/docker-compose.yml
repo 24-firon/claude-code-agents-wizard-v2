@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Backend Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: agent-dashboard-server
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - CLIENT_URL=http://localhost:3000
+      - LOG_LEVEL=info
+    volumes:
+      - ../.claude:/app/.claude:ro  # Read-only access to .claude directory
+      - ./server/logs:/app/logs      # Logs directory
+    restart: unless-stopped
+    networks:
+      - agent-dashboard
+
+  # Frontend Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: agent-dashboard-client
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+    environment:
+      - REACT_APP_API_URL=http://localhost:4000
+    restart: unless-stopped
+    networks:
+      - agent-dashboard
+
+networks:
+  agent-dashboard:
+    driver: bridge
+
+volumes:
+  logs:

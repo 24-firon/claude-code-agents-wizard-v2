@@ -1,0 +1,49 @@
+{
+  "name": "jira-integration-plugin",
+  "version": "1.0.0",
+  "description": "Integration with Jira for ticket management and synchronization",
+  "author": "Claude Code Team",
+  "license": "MIT",
+  "main": "index.js",
+  "agents": [
+    {
+      "name": "jira-sync",
+      "description": "Agent for syncing tasks with Jira tickets",
+      "file": "agents/jira-sync.md",
+      "enabled": true
+    }
+  ],
+  "tools": [],
+  "hooks": {
+    "task:created": ["onTaskCreated"],
+    "task:completed": ["onTaskCompleted"]
+  },
+  "permissions": [
+    "network:https",
+    "config:read",
+    "config:write",
+    "storage:persistent",
+    "events:emit",
+    "events:subscribe"
+  ],
+  "dependencies": {
+    "npm": {
+      "axios": "^1.6.0"
+    }
+  },
+  "config": {
+    "jiraUrl": "https://your-domain.atlassian.net",
+    "projectKey": "",
+    "apiToken": "",
+    "email": "",
+    "autoSync": false,
+    "syncInterval": 300000
+  },
+  "configSchema": "config.schema.json",
+  "enabled": false,
+  "autoload": false,
+  "priority": 10,
+  "tags": ["integration", "jira", "project-management"],
+  "keywords": ["jira", "atlassian", "tickets", "sync", "integration"],
+  "documentation": "README.md"
+}

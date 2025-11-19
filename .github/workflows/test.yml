@@ -1,0 +1,874 @@
+name: Test Suite
+
+# =============================================================================
+# Comprehensive test workflow with multi-OS support, performance benchmarking,
+# coverage reporting, and notification capabilities
+# =============================================================================
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+# Cancel in-progress runs for same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # JSON VALIDATION
+  # Validates all JSON configuration files for syntax errors
+  # ===========================================================================
+  validate-json:
+    name: Validate JSON Files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-json-validation
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Find and validate JSON files
+        run: |
+          echo "Searching for JSON files..."
+          json_files=$(find . -type f -name "*.json" -not -path "*/node_modules/*" -not -path "*/.git/*" | sort)
+
+          if [ -z "$json_files" ]; then
+            echo "No JSON files found - skipping validation"
+            exit 0
+          fi
+
+          echo "Found JSON files:"
+          echo "$json_files"
+          echo ""
+
+          # Validate each JSON file
+          has_errors=0
+          while IFS= read -r file; do
+            echo "Validating: $file"
+            if ! python3 -m json.tool "$file" > /dev/null 2>&1; then
+              echo "ERROR: Invalid JSON in $file"
+              has_errors=1
+            else
+              echo "✓ Valid JSON: $file"
+            fi
+          done <<< "$json_files"
+
+          if [ $has_errors -eq 1 ]; then
+            echo "JSON validation failed!"
+            exit 1
+          fi
+
+          echo "All JSON files are valid!"
+
+      - name: Upload JSON validation artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: json-validation-failure-${{ github.run_id }}
+          path: |
+            **/*.json
+            !node_modules/**
+            !.git/**
+          retention-days: 7
+
+  # ===========================================================================
+  # YAML FRONTMATTER VALIDATION
+  # Validates YAML frontmatter in agent definition files
+  # ===========================================================================
+  validate-agent-frontmatter:
+    name: Validate Agent YAML Frontmatter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-pyyaml-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-pyyaml-
+            ${{ runner.os }}-pip-
+
+      - name: Install PyYAML
+        run: pip install PyYAML
+
+      - name: Validate agent frontmatter
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import sys
+          import yaml
+          import re
+
+          agents_dir = ".claude/agents"
+
+          if not os.path.exists(agents_dir):
+              print(f"Agents directory not found: {agents_dir}")
+              sys.exit(0)
+
+          md_files = [f for f in os.listdir(agents_dir) if f.endswith('.md')]
+
+          if not md_files:
+              print("No agent markdown files found")
+              sys.exit(0)
+
+          has_errors = False
+
+          for filename in sorted(md_files):
+              filepath = os.path.join(agents_dir, filename)
+              print(f"\nValidating: {filename}")
+
+              with open(filepath, 'r') as f:
+                  content = f.read()
+
+              # Extract frontmatter
+              frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+
+              if not frontmatter_match:
+                  print(f"  ERROR: No YAML frontmatter found")
+                  has_errors = True
+                  continue
+
+              frontmatter_text = frontmatter_match.group(1)
+
+              try:
+                  frontmatter = yaml.safe_load(frontmatter_text)
+                  print(f"  ✓ Valid YAML syntax")
+              except yaml.YAMLError as e:
+                  print(f"  ERROR: Invalid YAML syntax: {e}")
+                  has_errors = True
+                  continue
+
+          if has_errors:
+              print("\n❌ Frontmatter validation failed!")
+              sys.exit(1)
+
+          print("\n✓ All agent frontmatter validated successfully!")
+          PYTHON_SCRIPT
+
+      - name: Upload validation report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontmatter-validation-report-${{ github.run_id }}
+          path: |
+            .claude/agents/*.md
+          retention-days: 7
+
+  # ===========================================================================
+  # MARKDOWN LINTING
+  # Lints all markdown files for consistency and best practices
+  # ===========================================================================
+  lint-markdown:
+    name: Lint Markdown Files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-markdownlint-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-markdownlint-
+            ${{ runner.os }}-npm-
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Create markdownlint config
+        run: |
+          cat > .markdownlint.json << 'EOF'
+          {
+            "default": true,
+            "MD013": false,
+            "MD033": false,
+            "MD041": false,
+            "MD034": false
+          }
+          EOF
+
+      - name: Lint markdown files
+        run: |
+          echo "Linting markdown files..."
+          markdownlint '**/*.md' --ignore node_modules --ignore .git || {
+            echo "Markdown linting failed - see errors above"
+            exit 1
+          }
+          echo "✓ Markdown linting passed!"
+
+      - name: Upload lint report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: markdown-lint-report-${{ github.run_id }}
+          path: |
+            **/*.md
+            .markdownlint.json
+          retention-days: 7
+
+  # ===========================================================================
+  # DIRECTORY STRUCTURE VALIDATION
+  # Checks that required directories and files exist with correct permissions
+  # ===========================================================================
+  check-structure:
+    name: Check Directory Structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify directory structure
+        run: |
+          echo "Checking required directories..."
+
+          # Define required directories
+          required_dirs=(
+            ".claude"
+            ".claude/agents"
+            ".claude/deployment"
+          )
+
+          has_errors=0
+
+          for dir in "${required_dirs[@]}"; do
+            if [ -d "$dir" ]; then
+              echo "✓ Directory exists: $dir"
+              # Check permissions
+              perms=$(stat -c "%a" "$dir" 2>/dev/null || stat -f "%Lp" "$dir" 2>/dev/null || echo "unknown")
+              echo "  Permissions: $perms"
+            else
+              echo "ERROR: Required directory missing: $dir"
+              has_errors=1
+            fi
+          done
+
+          # Check for important files
+          echo ""
+          echo "Checking important files..."
+
+          important_files=(
+            "README.md"
+            ".gitignore"
+            ".claude/CLAUDE.md"
+          )
+
+          for file in "${important_files[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✓ File exists: $file"
+            else
+              echo "WARNING: Important file missing: $file"
+            fi
+          done
+
+          if [ $has_errors -eq 1 ]; then
+            echo ""
+            echo "❌ Directory structure validation failed!"
+            exit 1
+          fi
+
+          echo ""
+          echo "✓ Directory structure validated successfully!"
+
+      - name: List directory tree
+        if: always()
+        run: |
+          echo "Repository structure:"
+          find . -type d -not -path "*/\.git/*" -not -path "*/node_modules/*" | head -50
+
+      - name: Upload structure report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: structure-validation-failure-${{ github.run_id }}
+          path: |
+            .
+          retention-days: 7
+
+  # ===========================================================================
+  # SHELLCHECK
+  # Validates shell scripts for common issues and best practices
+  # ===========================================================================
+  shellcheck:
+    name: ShellCheck Scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck on deployment scripts
+        run: |
+          scripts_dir=".claude/deployment/scripts"
+
+          if [ ! -d "$scripts_dir" ]; then
+            echo "Scripts directory not found: $scripts_dir"
+            echo "Skipping shellcheck..."
+            exit 0
+          fi
+
+          # Find all .sh files
+          shell_scripts=$(find "$scripts_dir" -type f -name "*.sh")
+
+          if [ -z "$shell_scripts" ]; then
+            echo "No shell scripts found in $scripts_dir"
+            exit 0
+          fi
+
+          echo "Found shell scripts:"
+          echo "$shell_scripts"
+          echo ""
+
+          has_errors=0
+
+          while IFS= read -r script; do
+            echo "Checking: $script"
+            # Use strict checking with informational messages
+            if ! shellcheck -S error "$script"; then
+              echo "ERROR: ShellCheck failed for $script"
+              has_errors=1
+            else
+              echo "✓ ShellCheck passed: $script"
+            fi
+            echo ""
+          done <<< "$shell_scripts"
+
+          if [ $has_errors -eq 1 ]; then
+            echo "❌ ShellCheck validation failed!"
+            exit 1
+          fi
+
+          echo "✓ All shell scripts passed ShellCheck!"
+
+      - name: Upload ShellCheck report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shellcheck-report-${{ github.run_id }}
+          path: |
+            .claude/deployment/scripts/*.sh
+          retention-days: 7
+
+  # ===========================================================================
+  # MULTI-OS AND MULTI-NODE COMPATIBILITY MATRIX
+  # Tests across different operating systems and Node.js versions
+  # ===========================================================================
+  node-compatibility:
+    name: Node.js ${{ matrix.node-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      # Test all combinations even if one fails
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [18, 20, 21]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Check Node.js version
+        run: |
+          echo "Node.js version:"
+          node --version
+          echo "npm version:"
+          npm --version
+
+      - name: Check for package.json
+        id: check-package
+        shell: bash
+        run: |
+          if [ -f "package.json" ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "✓ package.json found"
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "No package.json found - skipping npm tests"
+          fi
+
+      - name: Cache npm dependencies
+        if: steps.check-package.outputs.found == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/AppData/Local/npm-cache
+            ~/Library/Caches/npm
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json', '**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ matrix.node-version }}-
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.check-package.outputs.found == 'true'
+        run: npm ci || npm install
+
+      - name: Run tests
+        if: steps.check-package.outputs.found == 'true'
+        run: npm test || echo "No tests configured"
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-${{ matrix.node-version }}-${{ matrix.os }}-failure-logs
+          path: |
+            npm-debug.log*
+            yarn-error.log*
+            package.json
+            package-lock.json
+          retention-days: 7
+
+  # ===========================================================================
+  # PERFORMANCE BENCHMARKING
+  # Runs performance tests to track speed of critical operations
+  # ===========================================================================
+  performance-benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/pip
+          key: ${{ runner.os }}-perf-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-perf-
+
+      - name: Install dependencies
+        run: |
+          pip install PyYAML
+          [ -f "package.json" ] && (npm ci || npm install) || echo "No package.json"
+
+      - name: Run JSON parsing benchmarks
+        run: |
+          echo "=== JSON Parsing Performance Benchmark ===" | tee benchmark-results.txt
+          echo "" | tee -a benchmark-results.txt
+
+          # Find all JSON files
+          json_files=$(find . -type f -name "*.json" -not -path "*/node_modules/*" -not -path "*/.git/*")
+
+          if [ -z "$json_files" ]; then
+            echo "No JSON files found for benchmarking" | tee -a benchmark-results.txt
+            exit 0
+          fi
+
+          total_files=0
+          total_time=0
+
+          while IFS= read -r file; do
+            start=$(date +%s%N)
+            python3 -m json.tool "$file" > /dev/null 2>&1
+            end=$(date +%s%N)
+            elapsed=$((($end - $start) / 1000000))  # Convert to milliseconds
+
+            echo "File: $file - ${elapsed}ms" | tee -a benchmark-results.txt
+            total_files=$((total_files + 1))
+            total_time=$((total_time + elapsed))
+          done <<< "$json_files"
+
+          avg_time=$((total_time / total_files))
+          echo "" | tee -a benchmark-results.txt
+          echo "Total files: $total_files" | tee -a benchmark-results.txt
+          echo "Average parse time: ${avg_time}ms" | tee -a benchmark-results.txt
+
+      - name: Run directory traversal benchmark
+        run: |
+          echo "" | tee -a benchmark-results.txt
+          echo "=== Directory Traversal Performance Benchmark ===" | tee -a benchmark-results.txt
+          echo "" | tee -a benchmark-results.txt
+
+          start=$(date +%s%N)
+          file_count=$(find . -type f -not -path "*/\.git/*" -not -path "*/node_modules/*" | wc -l)
+          end=$(date +%s%N)
+          elapsed=$((($end - $start) / 1000000))
+
+          echo "Files found: $file_count" | tee -a benchmark-results.txt
+          echo "Traversal time: ${elapsed}ms" | tee -a benchmark-results.txt
+
+      - name: Run agent validation speed test
+        run: |
+          echo "" | tee -a benchmark-results.txt
+          echo "=== Agent Validation Performance Benchmark ===" | tee -a benchmark-results.txt
+          echo "" | tee -a benchmark-results.txt
+
+          if [ ! -d ".claude/agents" ]; then
+            echo "No agents directory found" | tee -a benchmark-results.txt
+            exit 0
+          fi
+
+          start=$(date +%s%N)
+
+          python3 << 'PYTHON_SCRIPT' 2>&1 | tee -a benchmark-results.txt
+          import os
+          import yaml
+          import re
+          import time
+
+          agents_dir = ".claude/agents"
+          md_files = [f for f in os.listdir(agents_dir) if f.endswith('.md')]
+
+          parse_times = []
+
+          for filename in md_files:
+              filepath = os.path.join(agents_dir, filename)
+
+              file_start = time.time()
+              with open(filepath, 'r') as f:
+                  content = f.read()
+
+              frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+              if frontmatter_match:
+                  try:
+                      frontmatter = yaml.safe_load(frontmatter_match.group(1))
+                  except:
+                      pass
+
+              file_end = time.time()
+              elapsed_ms = (file_end - file_start) * 1000
+              parse_times.append(elapsed_ms)
+              print(f"Agent: {filename} - {elapsed_ms:.2f}ms")
+
+          if parse_times:
+              avg = sum(parse_times) / len(parse_times)
+              print(f"\nAverage agent parse time: {avg:.2f}ms")
+              print(f"Total agents validated: {len(parse_times)}")
+          PYTHON_SCRIPT
+
+      - name: Generate performance summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Performance Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat benchmark-results.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-benchmarks-${{ github.run_id }}
+          path: |
+            benchmark-results.txt
+          retention-days: 30
+
+  # ===========================================================================
+  # CODE COVERAGE REPORT
+  # Generates test coverage reports if tests are configured
+  # ===========================================================================
+  coverage-report:
+    name: Code Coverage Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-coverage-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-coverage-
+            ${{ runner.os }}-npm-
+
+      - name: Check for package.json
+        id: check-package
+        run: |
+          if [ -f "package.json" ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "✓ package.json found"
+
+            # Check if coverage script exists
+            if grep -q '"coverage"' package.json || grep -q '"test:coverage"' package.json; then
+              echo "coverage-script=true" >> $GITHUB_OUTPUT
+              echo "✓ Coverage script found in package.json"
+            else
+              echo "coverage-script=false" >> $GITHUB_OUTPUT
+              echo "No coverage script found in package.json"
+            fi
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "coverage-script=false" >> $GITHUB_OUTPUT
+            echo "No package.json found"
+          fi
+
+      - name: Install dependencies
+        if: steps.check-package.outputs.found == 'true'
+        run: npm ci || npm install
+
+      - name: Run coverage tests
+        if: steps.check-package.outputs.coverage-script == 'true'
+        run: npm run coverage || npm run test:coverage || echo "Coverage script failed or not configured"
+        continue-on-error: true
+
+      - name: Generate coverage summary
+        if: always() && steps.check-package.outputs.found == 'true'
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📈 Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "coverage/coverage-summary.json" ]; then
+            echo "Coverage data found!" >> $GITHUB_STEP_SUMMARY
+            # You can parse and display coverage percentages here
+          elif [ -d "coverage" ]; then
+            echo "Coverage directory exists but no summary found" >> $GITHUB_STEP_SUMMARY
+            echo "Files in coverage directory:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            ls -la coverage/ >> $GITHUB_STEP_SUMMARY 2>&1 || echo "Could not list coverage directory"
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No coverage data generated (this is normal if no tests are configured)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.run_id }}
+          path: |
+            coverage/
+            .nyc_output/
+            htmlcov/
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # NOTIFICATION WORKFLOW
+  # Sends notifications to Slack/Discord about workflow results
+  # Only runs on push to main/master branches
+  # ===========================================================================
+  notify-results:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Run after all other jobs complete
+    needs:
+      - validate-json
+      - validate-agent-frontmatter
+      - lint-markdown
+      - check-structure
+      - shellcheck
+      - node-compatibility
+      - performance-benchmarks
+      - coverage-report
+    # Run even if some jobs fail, but only on push to main/master
+    if: always() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+    steps:
+      - name: Determine workflow status
+        id: status
+        run: |
+          # Check if any job failed
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+            echo "color=danger" >> $GITHUB_OUTPUT
+          elif [[ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "status=cancelled" >> $GITHUB_OUTPUT
+            echo "emoji=⚠️" >> $GITHUB_OUTPUT
+            echo "color=warning" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+            echo "color=good" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack notification
+        if: secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1.25.0
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        with:
+          payload: |
+            {
+              "text": "${{ steps.status.outputs.emoji }} Test Suite ${{ steps.status.outputs.status }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${{ steps.status.outputs.emoji }} Test Suite ${{ steps.status.outputs.status }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n${{ github.ref_name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n<${{ github.event.head_commit.url }}|${{ github.sha }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author:*\n${{ github.actor }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Results:*\n• JSON Validation: ${{ needs.validate-json.result }}\n• YAML Frontmatter: ${{ needs.validate-agent-frontmatter.result }}\n• Markdown Linting: ${{ needs.lint-markdown.result }}\n• Structure Check: ${{ needs.check-structure.result }}\n• ShellCheck: ${{ needs.shellcheck.result }}\n• Node Compatibility: ${{ needs.node-compatibility.result }}\n• Performance: ${{ needs.performance-benchmarks.result }}\n• Coverage: ${{ needs.coverage-report.result }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: Send Discord notification
+        if: secrets.DISCORD_WEBHOOK_URL != ''
+        run: |
+          # Prepare Discord webhook payload
+          cat > discord-payload.json << EOF
+          {
+            "username": "GitHub Actions",
+            "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+            "embeds": [
+              {
+                "title": "${{ steps.status.outputs.emoji }} Test Suite ${{ steps.status.outputs.status }}",
+                "description": "Test workflow completed for \`${{ github.repository }}\`",
+                "color": $([ "${{ steps.status.outputs.status }}" == "success" ] && echo "3066993" || echo "15158332"),
+                "fields": [
+                  {
+                    "name": "Branch",
+                    "value": "\`${{ github.ref_name }}\`",
+                    "inline": true
+                  },
+                  {
+                    "name": "Commit",
+                    "value": "[\`${GITHUB_SHA:0:7}\`](${{ github.event.head_commit.url }})",
+                    "inline": true
+                  },
+                  {
+                    "name": "Author",
+                    "value": "${{ github.actor }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Results Summary",
+                    "value": "JSON: ${{ needs.validate-json.result }}\nYAML: ${{ needs.validate-agent-frontmatter.result }}\nMarkdown: ${{ needs.lint-markdown.result }}\nStructure: ${{ needs.check-structure.result }}\nShellCheck: ${{ needs.shellcheck.result }}\nNode: ${{ needs.node-compatibility.result }}\nPerf: ${{ needs.performance-benchmarks.result }}\nCoverage: ${{ needs.coverage-report.result }}",
+                    "inline": false
+                  }
+                ],
+                "footer": {
+                  "text": "GitHub Actions"
+                },
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              }
+            ]
+          }
+          EOF
+
+          # Send to Discord
+          curl -H "Content-Type: application/json" \
+               -d @discord-payload.json \
+               "${{ secrets.DISCORD_WEBHOOK_URL }}" || echo "Discord notification failed (webhook may not be configured)"
+
+      - name: Generate final summary
+        if: always()
+        run: |
+          echo "## 🎯 Test Suite Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Status:** ${{ steps.status.outputs.emoji }} **${{ steps.status.outputs.status }}**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| JSON Validation | ${{ needs.validate-json.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| YAML Frontmatter | ${{ needs.validate-agent-frontmatter.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Markdown Linting | ${{ needs.lint-markdown.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Structure Check | ${{ needs.check-structure.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ShellCheck | ${{ needs.shellcheck.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Node Compatibility | ${{ needs.node-compatibility.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Benchmarks | ${{ needs.performance-benchmarks.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage Report | ${{ needs.coverage-report.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

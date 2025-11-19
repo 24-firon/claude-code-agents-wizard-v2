@@ -185,42 +185,6 @@ CLAUDE: Project complete! ✅
 
 At **any point**, if an agent encounters a problem, they invoke the **stuck agent** which escalates to you for a decision.
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-1. **Claude Code CLI** installed ([get it here](https://docs.claude.com/en/docs/claude-code))
-2. **Node.js** (for Playwright MCP and development)
-
-### Installation
-
-```bash
-# Clone this repository
-git clone https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2.git
-cd claude-code-agents-wizard-v2
-
-# Start Claude Code in this directory
-claude
-```
-
-That's it! Your entire fake company is ready to go.
-
-### Starting Your First Project
-
-Just tell Claude what you want to build:
-
-```
-You: "Build a modern SaaS landing page with pricing tiers and a contact form"
-```
-
-Claude will:
-1. Create a comprehensive todo list covering all 6 phases
-2. Delegate to each specialized agent in sequence
-3. Ask you for decisions when needed (via stuck agent)
-4. Test everything with Playwright
-5. Deploy to production
-6. Report completion with all deliverables
-
 ## 💡 Complete Example Workflow
 
 Let's see the fake company build a real project:
@@ -363,6 +327,286 @@ Claude invokes DevOps Engineer:
 
 **All from a single prompt!**
 
+## 🛠️ Advanced DevTools & Infrastructure
+
+Beyond the core 12-agent company, this system includes powerful development tools and infrastructure support.
+
+### 5 Additional Tech-Focused Agents
+
+**Researcher**
+- Web research & documentation analysis powered by Jina AI
+- Fetches and analyzes documentation from any URL
+- Provides context-aware insights for implementation
+- Helps answer technical questions with real-time web data
+
+**Security Auditor**
+- OWASP Top 10 checks & vulnerability scanning
+- Scans code for common security vulnerabilities
+- Checks for SQL injection, XSS, insecure dependencies
+- Provides remediation recommendations
+
+**Performance Optimizer**
+- Lighthouse audits & optimization recommendations
+- Runs Google Lighthouse audits on web applications
+- Identifies performance bottlenecks
+- Provides actionable optimization suggestions
+
+**Recovery Agent**
+- Pattern-based error recovery system
+- Analyzes errors and suggests recovery strategies
+- Learns from common error patterns
+- Automated retry logic with exponential backoff
+
+**Code Reviewer**
+- AI-powered code review and quality analysis
+- Reviews code for best practices and patterns
+- Identifies potential bugs and code smells
+- Suggests improvements and refactoring opportunities
+
+### Multi-Project Workspace System
+
+Manage multiple projects seamlessly with the workspace system:
+
+**Location**: `.claude/workspaces/`
+
+**Features**:
+- **Project Isolation**: Each workspace has its own configuration and todo list
+- **Easy Switching**: Switch between projects without losing context
+- **Workspace Templates**: Create new projects from templates
+- **Project-Specific Settings**: Customize agent behavior per project
+
+**Structure**:
+```
+.claude/workspaces/
+├── my-app/
+│   ├── workspace.json      # Project metadata
+│   ├── todos.json          # Project-specific todos
+│   └── config.json         # Custom configuration
+├── another-project/
+│   ├── workspace.json
+│   ├── todos.json
+│   └── config.json
+└── active.json             # Tracks current workspace
+```
+
+### Persistence & Metrics
+
+**Todo Persistence** (`.claude/persistence/`):
+- JSON schema-based todo storage
+- Automatic save/load of todo lists
+- Version control for todo history
+- Cross-session persistence
+
+**Metrics Tracking** (`.claude/metrics/`):
+- Session tracking with start/end times
+- Daily and weekly aggregation
+- Agent performance metrics
+- Success/failure rates
+- All-time statistics
+
+**Files**:
+```
+.claude/metrics/
+├── sessions/               # Individual session logs
+│   └── 2025-01-18-abc123.json
+├── daily/                  # Daily aggregations
+│   └── 2025-01-18.json
+├── weekly/                 # Weekly summaries
+│   └── 2025-W03.json
+└── all-time.json          # Cumulative stats
+```
+
+### Plugin System
+
+**Location**: `.claude/plugins/`
+
+Hot-reloadable plugin system for extending functionality without modifying core code.
+
+**Features**:
+- **Hot Reload**: Plugins load without restart
+- **Sandboxed Execution**: Plugins run in isolated environments
+- **Plugin CLI**: Manage plugins via command line
+- **Plugin API**: Simple API for creating custom plugins
+
+**Example Plugins Included**:
+1. **hello-world**: Basic example showing plugin structure
+2. **jira**: Integrate with Jira for issue tracking
+3. **slack**: Send notifications to Slack channels
+4. **git-analyzer**: Analyze git repository patterns
+
+**Plugin Structure**:
+```javascript
+// .claude/plugins/my-plugin/index.js
+module.exports = {
+  name: 'my-plugin',
+  version: '1.0.0',
+
+  async initialize(api) {
+    // Setup code
+  },
+
+  async execute(context) {
+    // Plugin logic
+  }
+};
+```
+
+**Plugin CLI**:
+```bash
+cd .claude/plugins
+./plugin-cli.js list                    # List all plugins
+./plugin-cli.js enable my-plugin        # Enable a plugin
+./plugin-cli.js disable my-plugin       # Disable a plugin
+./plugin-cli.js test my-plugin          # Test a plugin
+```
+
+### Deployment Support
+
+**Location**: `.claude/deployment/`
+
+Production-ready deployment templates for major platforms:
+
+**Supported Platforms**:
+- **Docker**: Multi-stage builds with optimization
+- **Vercel**: Serverless deployment with edge functions
+- **Netlify**: JAMstack deployments with redirects
+- **Railway**: Container-based deployment
+- **AWS**: EC2, ECS, Lambda configurations
+- **Kubernetes**: Helm charts and manifests
+
+**Files Included**:
+```
+.claude/deployment/
+├── docker/
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── .dockerignore
+├── vercel/
+│   ├── vercel.json
+│   └── api/
+├── netlify/
+│   ├── netlify.toml
+│   └── _redirects
+├── railway/
+│   └── railway.json
+├── aws/
+│   ├── ec2-user-data.sh
+│   ├── ecs-task-definition.json
+│   └── lambda/
+└── k8s/
+    ├── deployment.yaml
+    ├── service.yaml
+    └── ingress.yaml
+```
+
+### Monitoring Dashboards
+
+**CLI Dashboard** (`.claude/cli-dashboard/`):
+- Terminal-based real-time monitoring
+- Live metrics visualization with ASCII graphs
+- Agent status tracking
+- Todo progress indicators
+- Session statistics
+
+**Start CLI Dashboard**:
+```bash
+cd .claude/cli-dashboard
+./start.sh
+```
+
+**Web Dashboard** (`.claude/web-dashboard/`):
+- React + Express with live WebSocket updates
+- Beautiful UI with charts and graphs
+- Real-time agent activity monitoring
+- Historical metrics visualization
+- Docker-ready with docker-compose
+
+**Start Web Dashboard**:
+```bash
+cd .claude/web-dashboard
+docker-compose up
+# Open http://localhost:3000
+```
+
+**Features**:
+- Real-time agent status
+- Todo completion rates
+- Performance metrics over time
+- Session history
+- Error tracking and analysis
+
+### Development Tools
+
+**Changelog Generator** (`.claude/changelog/`):
+- Automated changelog from git commits
+- Semantic versioning support
+- Categorized changes (feat, fix, docs, etc.)
+- Markdown output
+
+```bash
+cd .claude/changelog
+./cli.js generate                    # Generate changelog
+./cli.js generate --version 2.0.0    # Generate for specific version
+```
+
+**Performance Benchmarking** (`.claude/benchmarks/`):
+- **57 benchmarks** across all agents
+- Measures agent response times
+- Tests throughput and concurrency
+- Compares agent performance
+
+```bash
+cd .claude/benchmarks
+npm install
+npm run bench:all                    # Run all benchmarks
+npm run bench:coder                  # Benchmark coder agent
+npm run bench:tester                 # Benchmark tester agent
+```
+
+**Integration Tests** (`.tests/integration/`):
+- **280+ test cases** covering all agents
+- End-to-end workflow testing
+- Visual regression testing
+- Performance regression tests
+
+```bash
+cd tests/integration
+npm install
+npm test                            # Run all tests
+npm run test:agents                 # Test agents only
+npm run test:plugins                # Test plugins
+```
+
+**CI/CD Pipeline** (`.github/workflows/`):
+- **6 GitHub Actions workflows**
+- Automated testing on push
+- Dependency updates with Dependabot
+- Security scanning
+- Performance benchmarking
+- Automated releases
+
+### Example Projects
+
+**React Todo App** (`tests/examples/react-todo/`):
+- Full TypeScript + Vite setup
+- Component library with tests
+- State management
+- Comprehensive test coverage
+- Production build configuration
+
+**Express REST API** (`tests/examples/express-api/`):
+- TypeScript + Prisma
+- Authentication & authorization
+- Database migrations
+- API documentation
+- Docker deployment ready
+
+Both examples include:
+- Complete test suites
+- Documentation
+- Deployment configurations
+- CI/CD pipelines
+
 ## 📁 Repository Structure
 
 ```
@@ -383,12 +627,86 @@ Claude invokes DevOps Engineer:
 │       ├── senior-qa-engineer.md      # QA agent (testing)
 │       ├── devops-engineer.md         # DevOps agent (deployment)
 │       ├── stuck.md                   # Stuck agent (human escalation)
-│       ├── coder.md                   # Legacy coder agent
-│       └── tester.md                  # Legacy tester agent
-├── .mcp.json                           # Playwright MCP configuration
+│       ├── coder.md                   # Coder agent (implementation)
+│       ├── tester.md                  # Tester agent (visual testing)
+│       ├── researcher.md              # Researcher agent (web research)
+│       ├── security.md                # Security auditor agent
+│       ├── performance.md             # Performance optimizer agent
+│       ├── recovery.md                # Recovery agent
+│       └── reviewer.md                # Code reviewer agent
+│   ├── workspaces/                    # Multi-project support
+│   │   ├── my-app/
+│   │   │   ├── workspace.json
+│   │   │   ├── todos.json
+│   │   │   └── config.json
+│   │   └── active.json
+│   ├── persistence/                   # Todo persistence layer
+│   │   ├── schema.json
+│   │   └── store.js
+│   ├── metrics/                       # Session & performance metrics
+│   │   ├── sessions/
+│   │   ├── daily/
+│   │   ├── weekly/
+│   │   └── all-time.json
+│   ├── plugins/                       # Hot-reloadable plugin system
+│   │   ├── hello-world/
+│   │   ├── jira/
+│   │   ├── slack/
+│   │   ├── git-analyzer/
+│   │   └── plugin-cli.js
+│   ├── deployment/                    # Deployment templates
+│   │   ├── docker/
+│   │   ├── vercel/
+│   │   ├── netlify/
+│   │   ├── railway/
+│   │   ├── aws/
+│   │   └── k8s/
+│   ├── cli-dashboard/                 # Terminal monitoring tool
+│   │   ├── start.sh
+│   │   └── dashboard.js
+│   ├── web-dashboard/                 # Web-based monitoring
+│   │   ├── frontend/                  # React dashboard
+│   │   ├── backend/                   # Express + WebSocket
+│   │   └── docker-compose.yml
+│   ├── changelog/                     # Changelog generator
+│   │   ├── cli.js
+│   │   └── templates/
+│   └── benchmarks/                    # Performance benchmarks
+│       ├── package.json
+│       └── suites/
+├── .github/
+│   └── workflows/                     # CI/CD pipelines (6 workflows)
+│       ├── test.yml
+│       ├── benchmark.yml
+│       ├── security.yml
+│       ├── deploy.yml
+│       ├── dependabot.yml
+│       └── release.yml
+├── tests/
+│   ├── integration/                   # 280+ integration tests
+│   │   ├── agents/
+│   │   ├── plugins/
+│   │   └── workflows/
+│   └── examples/                      # Example projects
+│       ├── react-todo/                # React + TypeScript + Vite
+│       └── express-api/               # Express + TypeScript + Prisma
+├── .mcp.json                          # Playwright MCP configuration
 ├── .gitignore
 └── README.md
 ```
+
+## 📊 Project Statistics
+
+- **Total Business Agents**: 12 specialized company agents (CPO to DevOps)
+- **Total Tech Agents**: 8 specialized development agents (Coder, Tester, Researcher, etc.)
+- **Total Files**: 200+ files across the system
+- **Integration Tests**: 280+ test cases
+- **Benchmarks**: 57 performance benchmarks
+- **Example Projects**: 2 production-ready examples
+- **Deployment Platforms**: 6 supported platforms
+- **Plugin Examples**: 4 example plugins included
+- **CI/CD Workflows**: 6 GitHub Actions workflows
+- **Documentation**: Comprehensive guides throughout
 
 ## 🎯 Why This Works
 
@@ -420,6 +738,90 @@ Mimics how real startups work:
 - Security integrated into development
 - Testing throughout
 - DevOps handles deployment
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+1. **Claude Code CLI** installed ([get it here](https://docs.claude.com/en/docs/claude-code))
+2. **Node.js** v18+ (for Playwright MCP and tools)
+
+### Installation
+
+```bash
+# Clone this repository
+git clone https://github.com/IncomeStreamSurfer/claude-code-agents-wizard-v2.git
+cd claude-code-agents-wizard-v2
+
+# Start Claude Code in this directory
+claude
+```
+
+That's it! Your entire fake company is ready to go.
+
+### Starting Your First Project
+
+Just tell Claude what you want to build:
+
+```
+You: "Build a modern SaaS landing page with pricing tiers and a contact form"
+```
+
+Claude will:
+1. Create a comprehensive todo list covering all 6 phases
+2. Delegate to each specialized agent in sequence
+3. Ask you for decisions when needed (via stuck agent)
+4. Test everything with Playwright
+5. Deploy to production
+6. Report completion with all deliverables
+
+### Quick Start Examples
+
+**1. Use the CLI Dashboard**:
+```bash
+cd .claude/cli-dashboard
+./start.sh
+```
+
+**2. Start Web Dashboard**:
+```bash
+cd .claude/web-dashboard
+docker-compose up
+# Open http://localhost:3000
+```
+
+**3. Run Benchmarks**:
+```bash
+cd .claude/benchmarks
+npm install
+npm run bench:all
+```
+
+**4. Generate Changelog**:
+```bash
+cd .claude/changelog
+./cli.js generate
+```
+
+**5. Run Integration Tests**:
+```bash
+cd tests/integration
+npm install
+npm test
+```
+
+**6. Try Example Projects**:
+```bash
+# React Todo App
+cd tests/examples/react-todo
+npm install
+npm run dev
+
+# Express API
+cd tests/examples/express-api
+npm install
+npm run dev
+```
 
 ## 🎓 Best Practices
 
@@ -480,6 +882,11 @@ If tests fail or you want changes:
 - **See all agents:** Use `/agents` command to see your complete team
 - **Customize agents:** Edit agent files in `.claude/agents/` to adjust behavior
 - **Add new agents:** Create new specialized roles for specific needs
+- **Use the CLI dashboard** for real-time monitoring
+- **Check metrics** to identify bottlenecks
+- **Create custom plugins** for project-specific needs
+- **Use example projects** as templates for new projects
+- **Run integration tests** before major deployments
 
 ## 🔥 Advanced Use Cases
 
@@ -506,68 +913,6 @@ Only use certain phases:
 for a fitness tracking app - no development yet"
 ```
 Claude will only invoke Strategy and Design phase agents.
-
-## 🎓 Learn More
-
-### Resources
-
-- **[SEO Grove](https://seogrove.ai)** - AI-powered SEO automation platform
-- **[ISS AI Automation School](https://www.skool.com/iss-ai-automation-school-6342/about)** - Join our community to learn AI automation
-- **[Income Stream Surfers YouTube](https://www.youtube.com/incomestreamsurfers)** - Tutorials, breakdowns, and AI automation content
-
-### Support
-
-Have questions or want to share what you built?
-- Join the [ISS AI Automation School community](https://www.skool.com/iss-ai-automation-school-6342/about)
-- Subscribe to [Income Stream Surfers on YouTube](https://www.youtube.com/incomestreamsurfers)
-- Check out [SEO Grove](https://seogrove.ai) for automated SEO solutions
-
-## 🤝 Contributing
-
-Want to make the fake company better?
-
-**Add new specialized agents:**
-- Sales Engineer (demos and sales enablement)
-- Data Analyst (analytics and insights)
-- Content Writer (documentation and blog posts)
-- Customer Support (help docs and FAQs)
-
-**Improve existing agents:**
-- Enhance agent prompts and instructions
-- Add new tools and capabilities
-- Share your agent configurations
-
-**Submit PRs:**
-- Fork the repository
-- Create your feature branch
-- Submit a pull request
-
-## 🚨 Important Notes
-
-### The "No Fallbacks" Rule
-Every agent is hardwired to:
-- **Never** use workarounds when they hit problems
-- **Never** make assumptions about unclear requirements
-- **Always** invoke the stuck agent for human decisions
-- **Always** report exactly what happened
-
-This ensures you stay in control and nothing fails silently.
-
-### Playwright MCP Integration
-The QA Engineer uses Playwright to:
-- Actually render your app in a browser
-- Take real screenshots
-- Test real interactions
-- Provide visual proof
-
-Make sure Playwright MCP is configured in `.mcp.json`.
-
-### Context Window Magic
-The system works because:
-- **Claude (200k)** sees everything and orchestrates
-- **Each agent (fresh)** focuses only on their job
-- **No interference** between agent contexts
-- **Clean handoffs** between phases
 
 ## 🎉 What Can You Build?
 
@@ -602,6 +947,84 @@ The fake company can build almost anything:
 - Workflow automation
 - Reporting systems
 
+## 🎓 Learn More
+
+### Resources
+
+- **[SEO Grove](https://seogrove.ai)** - AI-powered SEO automation platform
+- **[ISS AI Automation School](https://www.skool.com/iss-ai-automation-school-6342/about)** - Join our community to learn AI automation
+- **[Income Stream Surfers YouTube](https://www.youtube.com/incomestreamsurfers)** - Tutorials, breakdowns, and AI automation content
+
+### Support
+
+Have questions or want to share what you built?
+- Join the [ISS AI Automation School community](https://www.skool.com/iss-ai-automation-school-6342/about)
+- Subscribe to [Income Stream Surfers on YouTube](https://www.youtube.com/incomestreamsurfers)
+- Check out [SEO Grove](https://seogrove.ai) for automated SEO solutions
+
+## 🤝 Contributing
+
+Want to make the fake company better?
+
+**Add new specialized agents:**
+- Sales Engineer (demos and sales enablement)
+- Data Analyst (analytics and insights)
+- Content Writer (documentation and blog posts)
+- Customer Support (help docs and FAQs)
+
+**Improve existing agents:**
+- Enhance agent prompts and instructions
+- Add new tools and capabilities
+- Share your agent configurations
+- Submit PRs with enhancements
+- Create new plugins
+- Add deployment templates
+
+**Submit PRs:**
+- Fork the repository
+- Create your feature branch
+- Submit a pull request
+
+## 🚨 Important Notes
+
+### The "No Fallbacks" Rule
+Every agent is hardwired to:
+- **Never** use workarounds when they hit problems
+- **Never** make assumptions about unclear requirements
+- **Always** invoke the stuck agent for human decisions
+- **Always** report exactly what happened
+
+This ensures you stay in control and nothing fails silently.
+
+### Playwright MCP Integration
+The QA Engineer uses Playwright to:
+- Actually render your app in a browser
+- Take real screenshots
+- Test real interactions
+- Provide visual proof
+
+Make sure Playwright MCP is configured in `.mcp.json`.
+
+### Context Window Magic
+The system works because:
+- **Claude (200k)** sees everything and orchestrates
+- **Each agent (fresh)** focuses only on their job
+- **No interference** between agent contexts
+- **Clean handoffs** between phases
+
+### Key System Principles
+
+1. **Trust Claude** - Let it create and manage the todo list
+2. **Review screenshots** - The tester provides visual proof of every implementation
+3. **Make decisions when asked** - The stuck agent needs your guidance
+4. **Don't interrupt the flow** - Let subagents complete their work
+5. **Check the todo list** - Always visible, tracks real progress
+6. **Use monitoring dashboards** - Track progress in real-time
+7. **Review metrics** - Learn from performance data
+8. **Leverage plugins** - Extend functionality as needed
+9. **Run benchmarks** - Ensure performance meets requirements
+10. **Deploy with templates** - Use provided deployment configurations
+
 ## 📜 License
 
 MIT License - Use it, modify it, share it, build amazing things with it!
@@ -616,6 +1039,12 @@ Powered by:
 - Claude Code's agent orchestration system
 - Playwright MCP for visual testing
 - The amazing Claude Sonnet 4.5 model
+
+Special thanks to:
+- Anthropic for Claude Code
+- Jina AI for research capabilities
+- Google for Lighthouse performance audits
+- The open-source community
 
 ---
 
