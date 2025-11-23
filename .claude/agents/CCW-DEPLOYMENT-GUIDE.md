@@ -10,7 +10,9 @@ The **Claude Code Wizard (CCW) Agent System** enables you to deploy up to 10 par
 
 ```
 .claude/
-├── MASTER-AGENT-DEPLOYMENT.py    # Main deployment script
+├── MASTER-AGENT-DEPLOYMENT.py    # Main deployment script (active agent)
+├── STANDBY-AGENT.py               # Standby/idle agent script
+├── deploy-agent.sh                # Quick deploy helper
 ├── agents/
 │   ├── registry.json              # Agent registry (CCW-1 to CCW-10)
 │   ├── coder.md                   # Coder agent definition
@@ -19,7 +21,9 @@ The **Claude Code Wizard (CCW) Agent System** enables you to deploy up to 10 par
 ├── scripts/
 │   ├── send_message.py            # Send messages between agents
 │   ├── read_messages.py           # Read messages from inbox
-│   └── move_message.py            # Move messages between folders
+│   ├── move_message.py            # Move messages between folders
+│   ├── agent_status.py            # Monitor all agent statuses
+│   └── test_system.py             # System verification tests
 └── messages/
     ├── inbox/                     # Incoming messages per agent
     ├── processing/                # Messages being processed
@@ -120,6 +124,8 @@ move_message(message_id, "processing", "failed")
 
 ## 🔄 Agent Lifecycle
 
+### Active Agent (MASTER-AGENT-DEPLOYMENT.py)
+
 ```
 1. AGENT STARTS
    ├─ Updates registry.json (status = "active")
@@ -138,6 +144,65 @@ move_message(message_id, "processing", "failed")
 3. AGENT STOPS
    └─ Status remains "active" in registry until manually updated
 ```
+
+### Standby Agent (STANDBY-AGENT.py)
+
+```
+1. AGENT REGISTERS
+   ├─ Updates registry.json (status = "standby")
+   ├─ Updates last_heartbeat timestamp
+   └─ Exits (no processing loop)
+
+Purpose: Reserve agent ID without active processing
+Use cases:
+  - Reserve agents for future use
+  - Mark agents as registered but not yet deployed
+  - Quick status update without full deployment
+```
+
+## 📊 Agent Status Monitoring
+
+### Check All Agent Statuses
+
+```bash
+python3 .claude/scripts/agent_status.py
+```
+
+**Output:**
+```
+============================================================
+CCW AGENT STATUS MONITOR
+============================================================
+
+📊 Total Agents: 10
+🕒 Registry Updated: 2025-11-23T00:00:00Z
+
+Status Summary:
+  ⚫ OFFLINE: 9
+  🟡 STANDBY: 1
+
+------------------------------------------------------------
+Individual Agent Status:
+------------------------------------------------------------
+⚫ CCW-1    | OFFLINE  | Last HB: None
+⚫ CCW-2    | OFFLINE  | Last HB: None
+⚫ CCW-3    | OFFLINE  | Last HB: None
+⚫ CCW-4    | OFFLINE  | Last HB: None
+🟡 CCW-5    | STANDBY  | Last HB: 2025-11-23 11:58:37
+⚫ CCW-6    | OFFLINE  | Last HB: None
+⚫ CCW-7    | OFFLINE  | Last HB: None
+⚫ CCW-8    | OFFLINE  | Last HB: None
+⚫ CCW-9    | OFFLINE  | Last HB: None
+⚫ CCW-10   | OFFLINE  | Last HB: None
+============================================================
+```
+
+### Agent Status Types
+
+- 🟢 **ACTIVE**: Agent running and processing tasks
+- 🟡 **STANDBY**: Agent registered but idle
+- 🔴 **BUSY**: Agent currently processing (custom implementation)
+- ⚫ **OFFLINE**: Agent not started
 
 ## 📊 Message Types
 

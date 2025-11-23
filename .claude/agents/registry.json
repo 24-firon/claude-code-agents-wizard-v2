@@ -7,7 +7,11 @@
       "name": "Claude Code Wizard 1",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -16,7 +20,11 @@
       "name": "Claude Code Wizard 2",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -25,7 +33,11 @@
       "name": "Claude Code Wizard 3",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -34,7 +46,11 @@
       "name": "Claude Code Wizard 4",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -43,7 +59,11 @@
       "name": "Claude Code Wizard 5",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -52,7 +72,11 @@
       "name": "Claude Code Wizard 6",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -61,7 +85,11 @@
       "name": "Claude Code Wizard 7",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -70,7 +98,11 @@
       "name": "Claude Code Wizard 8",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -79,7 +111,11 @@
       "name": "Claude Code Wizard 9",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     },
@@ -88,7 +124,11 @@
       "name": "Claude Code Wizard 10",
       "type": "general",
       "status": "offline",
-      "capabilities": ["coding", "debugging", "testing"],
+      "capabilities": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
       "last_heartbeat": null,
       "created": "2025-11-23T00:00:00Z"
     }
