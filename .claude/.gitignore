@@ -1,0 +1,28 @@
+# Multi-Agent System .gitignore
+
+# Python cache
+scripts/__pycache__/
+*.pyc
+*.pyo
+
+# Message files (local state, not versioned)
+messages/inbox/*.json
+messages/processing/*.json
+messages/completed/*.json
+messages/failed/*.json
+
+# Keep the directory structure
+!messages/inbox/.gitkeep
+!messages/processing/.gitkeep
+!messages/completed/.gitkeep
+!messages/failed/.gitkeep
+
+# Task files (local state)
+tasks/*.json
+
+# Coordination logs
+coordination/logs/*.log
+coordination/logs/*.txt
+
+# Keep coordination directory structure
+!coordination/logs/.gitkeep

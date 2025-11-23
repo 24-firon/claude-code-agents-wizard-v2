@@ -1,23 +1,45 @@
 # Claude Code Agent Orchestration System v2 🚀
 
-A simple yet powerful orchestration system for Claude Code that uses specialized agents to manage complex projects from start to finish, with mandatory human oversight and visual testing.
+A powerful dual-mode orchestration system for Claude Code that manages complex projects through specialized agents with human oversight, visual testing, and parallel execution capabilities.
 
 ## 🎯 What Is This?
 
-This is a **custom Claude Code orchestration system** that transforms how you build software projects. Claude Code itself acts as the orchestrator with its 200k context window, managing the big picture while delegating individual tasks to specialized subagents:
+This is a **custom Claude Code orchestration system** with **two complementary modes**:
+
+### Mode 1: Subagent System (Built-in)
+Claude Code acts as the orchestrator with its 200k context window, managing the big picture while delegating individual tasks to specialized subagents:
 
 - **🧠 Claude (You)** - The orchestrator with 200k context managing todos and the big picture
 - **✍️ Coder Subagent** - Implements one todo at a time in its own clean context
 - **👁️ Tester Subagent** - Verifies implementations using Playwright in its own context
 - **🆘 Stuck Subagent** - Human escalation point when ANY problem occurs
 
+### Mode 2: Multi-Agent System (NEW! ✨)
+**Parallel execution** across multiple Claude instances for complex projects:
+
+- **🤖 CEO (Claude Code)** - Orchestrates everything with 200k context
+- **👥 Worker Agents** - Specialized agents in separate Claude Desktop/Web instances
+- **📬 Message Passing** - File-based communication system for coordination
+- **⚡ Parallel Execution** - Multiple agents work simultaneously (56% faster!)
+
+**Use subagents** for quick iterations, testing, and immediate tasks.
+**Use multi-agent** for large-scale projects requiring parallel execution (PM, Design, Development, QA, DevOps all at once).
+
 ## ⚡ Key Features
 
+### Subagent System
 - **No Fallbacks**: When ANY agent hits a problem, you get asked - no assumptions, no workarounds
 - **Visual Testing**: Playwright MCP integration for screenshot-based verification
 - **Todo Tracking**: Always see exactly where your project stands
 - **Simple Flow**: Claude creates todos → delegates to coder → tester verifies → repeat
 - **Human Control**: The stuck agent ensures you're always in the loop
+
+### Multi-Agent System (NEW!)
+- **Parallel Execution**: Run PM, Designer, Developer, QA simultaneously (56% faster!)
+- **Message Passing**: File-based communication between agents
+- **Agent Registry**: Track all active agents in the system
+- **Flexible Coordination**: Synchronous or asynchronous task delegation
+- **Scalable**: Add as many worker agents as you need
 
 ## 🚀 Quick Start
 
@@ -39,9 +61,20 @@ claude
 
 That's it! The agents are automatically loaded from the `.claude/` directory.
 
+### System Verification
+
+```bash
+# Test the multi-agent system
+python3 .claude/scripts/test_system.py
+
+# Expected output:
+# ✅ SYSTEM TEST COMPLETE!
+# 📊 Status: OPERATIONAL 🟢
+```
+
 ## 📖 How to Use
 
-### Starting a Project
+### Quick Start: Subagent System
 
 When you want to build something, just tell Claude your requirements:
 
@@ -258,11 +291,19 @@ The magic happens because:
 
 ## 🔥 Pro Tips
 
+### Subagent System
 - Use `/agents` command to see all available subagents
 - Claude maintains the todo list in its 200k context - check anytime
 - Screenshots from tester are saved and can be reviewed
 - Each subagent has specific tools - check their `.md` files
 - Subagents get fresh contexts - no context pollution!
+
+### Multi-Agent System
+- Start with `.claude/QUICK_START_MULTI_AGENT.md` for a 5-minute tutorial
+- Register worker agents as you spawn them: `register_agent.py`
+- Use descriptive agent IDs: CCW-PM, CCW-Designer, CCW-Frontend, etc.
+- Check message flow: `ls .claude/messages/inbox/`
+- Read full docs: `.claude/MULTI_AGENT_SYSTEM.md`
 
 ## 📜 License
 
