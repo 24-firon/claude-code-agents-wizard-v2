@@ -1,0 +1,350 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # CODE QUALITY & SECURITY CHECKS
+  # ============================================================================
+  code-quality:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            client-portal/package-lock.json
+            client-portal-api/package-lock.json
+
+      # Frontend checks
+      - name: Install frontend dependencies
+        working-directory: ./client-portal
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: ./client-portal
+        run: npm run lint
+
+      - name: Type check frontend
+        working-directory: ./client-portal
+        run: npx tsc --noEmit
+
+      # Backend checks
+      - name: Install backend dependencies
+        working-directory: ./client-portal-api
+        run: npm ci
+
+      - name: Lint backend
+        working-directory: ./client-portal-api
+        run: npm run lint
+
+      - name: Type check backend
+        working-directory: ./client-portal-api
+        run: npm run type-check
+
+      - name: Security audit
+        working-directory: ./client-portal-api
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      # Secret scanning
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+  # ============================================================================
+  # BUILD & TEST
+  # ============================================================================
+  build-frontend:
+    name: Build Frontend
+    needs: code-quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client-portal/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./client-portal
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./client-portal
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL || 'http://localhost:3001' }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: client-portal/.next
+          retention-days: 7
+
+  build-backend:
+    name: Build Backend
+    needs: code-quality
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client-portal-api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./client-portal-api
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./client-portal-api
+        run: npx prisma generate
+
+      - name: Run database migrations
+        working-directory: ./client-portal-api
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/test_db
+
+      - name: Build backend
+        working-directory: ./client-portal-api
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: client-portal-api/dist
+          retention-days: 7
+
+  # ============================================================================
+  # TESTS
+  # ============================================================================
+  test-backend:
+    name: Test Backend
+    needs: build-backend
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client-portal-api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./client-portal-api
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./client-portal-api
+        run: npx prisma generate
+
+      - name: Run database migrations
+        working-directory: ./client-portal-api
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/test_db
+
+      - name: Run tests
+        working-directory: ./client-portal-api
+        run: npm test -- --coverage
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/test_db
+          JWT_ACCESS_SECRET: test-secret-min-32-characters-long-abc123
+          JWT_REFRESH_SECRET: test-refresh-secret-min-32-characters-long-abc123
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./client-portal-api/coverage/lcov.info
+          flags: backend
+          fail_ci_if_error: false
+
+  # ============================================================================
+  # DEPLOY TO STAGING
+  # ============================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [build-frontend, build-backend, test-backend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.ki-agentur-portal.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Frontend to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./client-portal
+          scope: ${{ secrets.VERCEL_SCOPE }}
+          alias-domains: staging.ki-agentur-portal.com
+
+      - name: Deploy Backend to Railway (Staging)
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: client-portal-api-staging
+
+      - name: Run smoke tests
+        run: |
+          # Wait for deployment to be ready
+          sleep 30
+
+          # Check frontend health
+          curl -f https://staging.ki-agentur-portal.com || exit 1
+
+          # Check backend health
+          curl -f https://staging-api.ki-agentur-portal.com/health || exit 1
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Staging deployment completed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+
+  # ============================================================================
+  # DEPLOY TO PRODUCTION
+  # ============================================================================
+  deploy-production:
+    name: Deploy to Production
+    needs: [build-frontend, build-backend, test-backend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://portal.ki-agentur.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deployment tag
+        run: |
+          git tag -a "release-$(date +%Y%m%d-%H%M%S)" -m "Production release"
+          git push origin --tags
+
+      - name: Deploy Frontend to Vercel (Production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./client-portal
+          scope: ${{ secrets.VERCEL_SCOPE }}
+
+      - name: Deploy Backend to Railway (Production)
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: client-portal-api-production
+
+      - name: Run smoke tests
+        run: |
+          # Wait for deployment to be ready
+          sleep 30
+
+          # Check frontend health
+          curl -f https://portal.ki-agentur.com || exit 1
+
+          # Check backend health
+          curl -f https://api.ki-agentur-portal.com/health || exit 1
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment completed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: release-${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          body: |
+            Production deployment
+
+            **Frontend**: https://portal.ki-agentur.com
+            **Backend API**: https://api.ki-agentur-portal.com
+
+            See commit history for changes.
+          draft: false
+          prerelease: false

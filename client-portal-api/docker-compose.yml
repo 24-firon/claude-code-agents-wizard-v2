@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ki-portal-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ki_client_portal
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: ki-portal-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ki_client_portal?schema=public
+      JWT_ACCESS_SECRET: dev-access-secret-change-in-production
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
+      WEBHOOK_SECRET: dev-webhook-secret-change-in-production
+      API_KEY_SECRET: dev-api-key-secret-change-in-production
+      COOKIE_SECRET: dev-cookie-secret-change-in-production
+      ALLOWED_ORIGINS: http://localhost:3000
+      EMAIL_FROM: noreply@ki-agentur.local
+      EMAIL_FROM_NAME: KI Agentur Client Portal
+      AWS_S3_BUCKET: ki-agentur-documents
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

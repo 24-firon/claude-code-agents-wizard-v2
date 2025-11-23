@@ -1,0 +1,386 @@
+// Prisma schema for KI Agentur Client Portal
+// Database: PostgreSQL 15+
+// This file should be placed in: backend/prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================================================
+// USERS & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @db.VarChar(255)
+  firstName     String?   @db.VarChar(100)
+  lastName      String?   @db.VarChar(100)
+  role          UserRole  @default(USER)
+  projectId     String?
+  project       Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // Relations
+  createdProjects Project[]      @relation("project_owner")
+  documents       Document[]     @relation("document_uploader")
+  notifications   Notification[]
+  apiKeys         ApiKey[]
+  sessions        Session[]
+  auditLogs       AuditLog[]
+
+  // Timestamps
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLogin     DateTime?
+  lastActivityAt DateTime? @default(now())
+
+  // Indexes
+  @@index([email])
+  @@index([projectId])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+enum UserRole {
+  CEO
+  CTO
+  PM
+  ADMIN
+  USER
+}
+
+// ============================================================================
+// PROJECTS
+// ============================================================================
+
+model Project {
+  id            String    @id @default(cuid())
+  name          String    @db.VarChar(255)
+  description   String?   @db.Text
+  ownerId       String
+  owner         User      @relation("project_owner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  healthScore   Int       @default(100) @db.SmallInt // 0-100
+  status        ProjectStatus @default(ON_TRACK)
+
+  // Relations
+  users         User[]
+  documents     Document[]
+  workflowLogs  WorkflowLog[]
+  apiKeys       ApiKey[]
+
+  // Timestamps
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Indexes
+  @@index([ownerId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+enum ProjectStatus {
+  ON_TRACK
+  AT_RISK
+  BLOCKED
+}
+
+// ============================================================================
+// DOCUMENTS
+// ============================================================================
+
+model Document {
+  id            String    @id @default(cuid())
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name          String    @db.VarChar(500)
+  phase         DocumentPhase @default(REQUIREMENTS)
+  filePath      String    @db.VarChar(1024)
+  fileSize      BigInt    @default(0)
+  mimeType      String?   @db.VarChar(100)
+  version       Int       @default(1)
+  uploaderId    String
+  uploader      User      @relation("document_uploader", fields: [uploaderId], references: [id], onDelete: SetNull)
+
+  searchVector  String?   @db.Text
+
+  // Relations
+  permissions   DocumentPermission[]
+
+  // Timestamps
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Indexes
+  @@index([projectId])
+  @@index([phase])
+  @@index([uploaderId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@unique([projectId, name, version])
+}
+
+enum DocumentPhase {
+  REQUIREMENTS
+  DESIGN
+  DEVELOPMENT
+  TESTING
+  DEPLOYMENT
+}
+
+model DocumentPermission {
+  id            String    @id @default(cuid())
+  documentId    String
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  role          UserRole
+  permissionLevel PermissionLevel
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Indexes
+  @@index([documentId])
+  @@index([role])
+  @@unique([documentId, role])
+}
+
+enum PermissionLevel {
+  NONE
+  READ_ONLY
+  DOWNLOAD
+  EDIT
+}
+
+// ============================================================================
+// n8n WORKFLOW INTEGRATION
+// ============================================================================
+
+model WorkflowLog {
+  id            String    @id @default(cuid())
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  n8nWorkflowId String    @db.VarChar(255)
+  n8nWorkflowName String  @db.VarChar(500)
+  executionId   String    @db.VarChar(255)
+
+  status        WorkflowStatus
+  executionTimeMs Int?    @db.Integer
+  errorMessage  String?   @db.Text
+
+  // JSON data for workflow details
+  executionDetails Json?  @db.JsonB
+  inputData     Json?     @db.JsonB
+  outputData    Json?     @db.JsonB
+
+  // Indexes
+  @@index([projectId])
+  @@index([n8nWorkflowId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([executionId])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum WorkflowStatus {
+  SUCCESS
+  FAILED
+  IN_PROGRESS
+  TIMEOUT
+  ERROR
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          NotificationType
+  title         String    @db.VarChar(255)
+  body          String    @db.Text
+  data          Json?     @db.JsonB
+
+  readAt        DateTime?
+
+  // Indexes
+  @@index([userId])
+  @@index([type])
+  @@index([readAt])
+  @@index([createdAt])
+
+  createdAt     DateTime  @default(now())
+}
+
+enum NotificationType {
+  WORKFLOW_COMPLETED
+  WORKFLOW_FAILED
+  MILESTONE_COMPLETED
+  DOCUMENT_UPLOADED
+  BLOCKER_CREATED
+  WEEKLY_SUMMARY
+  ACCESS_REQUEST
+}
+
+model NotificationPreference {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Notification toggles
+  workflowCompleted Boolean @default(true)
+  workflowFailed    Boolean @default(true)
+  milestoneCompleted Boolean @default(true)
+  documentUploaded  Boolean @default(true)
+  blockerCreated    Boolean @default(true)
+  weeklySummary     Boolean @default(true)
+
+  // Delivery
+  emailEnabled      Boolean @default(true)
+  inAppEnabled      Boolean @default(true)
+
+  // Frequency
+  emailFrequency    EmailFrequency @default(IMMEDIATE)
+
+  updatedAt     DateTime  @updatedAt
+}
+
+enum EmailFrequency {
+  IMMEDIATE
+  DAILY
+  WEEKLY
+  NEVER
+}
+
+// ============================================================================
+// API KEYS
+// ============================================================================
+
+model ApiKey {
+  id            String    @id @default(cuid())
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  name          String    @db.VarChar(255)
+  keyHash       String    @db.VarChar(255) @unique
+
+  // Usage tracking
+  lastUsedAt    DateTime?
+  revokedAt     DateTime?
+
+  // Indexes
+  @@index([projectId])
+  @@index([userId])
+  @@index([keyHash])
+  @@index([revokedAt])
+
+  createdAt     DateTime  @default(now())
+}
+
+// ============================================================================
+// SESSIONS
+// ============================================================================
+
+model Session {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessTokenHash String? @db.VarChar(255)
+  refreshTokenHash String? @db.VarChar(255)
+
+  ipAddress     String?   @db.VarChar(45)
+  userAgent     String?   @db.Text
+  deviceInfo    Json?     @db.JsonB
+
+  expiresAt     DateTime
+  lastActivityAt DateTime @default(now())
+
+  // Indexes
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([lastActivityAt])
+
+  createdAt     DateTime  @default(now())
+}
+
+// ============================================================================
+// AUDIT LOGS
+// ============================================================================
+
+model AuditLog {
+  id            String    @id @default(cuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  resourceType  String    @db.VarChar(100)
+  resourceId    String    @db.VarChar(255)
+  action        AuditAction
+
+  changes       Json?     @db.JsonB
+
+  ipAddress     String?   @db.VarChar(45)
+  userAgent     String?   @db.Text
+
+  // Indexes
+  @@index([userId])
+  @@index([resourceType])
+  @@index([resourceId])
+  @@index([action])
+  @@index([createdAt])
+
+  createdAt     DateTime  @default(now())
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  DOWNLOAD
+  SEARCH
+  LOGIN
+  LOGOUT
+  REVOKE_API_KEY
+  UPDATE_PERMISSION
+}
+
+// ============================================================================
+// WEBHOOK EVENTS (Optional - for debugging)
+// ============================================================================
+
+model WebhookEvent {
+  id            String    @id @default(cuid())
+  projectId     String
+  eventType     String    @db.VarChar(255)
+
+  payload       Json      @db.JsonB
+
+  processed     Boolean   @default(false)
+  processedAt   DateTime?
+  error         String?   @db.Text
+
+  @@index([projectId])
+  @@index([processed])
+  @@index([createdAt])
+
+  createdAt     DateTime  @default(now())
+}
