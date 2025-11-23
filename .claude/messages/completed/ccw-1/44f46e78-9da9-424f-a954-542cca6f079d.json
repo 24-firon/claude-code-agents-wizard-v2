@@ -1,0 +1,12 @@
+{
+  "id": "44f46e78-9da9-424f-a954-542cca6f079d",
+  "from": "TEST-SYSTEM",
+  "to": "CCW-1",
+  "type": "task_assignment",
+  "content": {
+    "task": "Test task",
+    "test": true
+  },
+  "timestamp": "2025-11-23T08:10:10.431362Z",
+  "status": "pending"
+}
