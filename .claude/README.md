@@ -2,7 +2,7 @@
 
 ## 🚀 Quick Start
 
-### Deploy Active Agent
+### Deploy Active Agent (Infinite Loop)
 ```bash
 # Method 1: Quick deploy
 ./.claude/deploy-agent.sh 1
@@ -11,10 +11,16 @@
 python3 .claude/MASTER-AGENT-DEPLOYMENT.py
 ```
 
-### Deploy Standby Agent
+### Deploy Standby Agent (Register Only)
 ```bash
 # Register agent without active processing
 sed 's/AGENT_ID = "CCW-X"/AGENT_ID = "CCW-3"/' .claude/STANDBY-AGENT.py | python3
+```
+
+### Auto-Complete Agent (Work Until Done)
+```bash
+# Process all tasks, then commit and exit
+sed 's/AGENT_ID = "CCW-1"/AGENT_ID = "CCW-2"/' .claude/AUTO-COMPLETE-AGENT.py | python3
 ```
 
 ### Monitor Agent Status
@@ -33,8 +39,9 @@ python3 .claude/scripts/test_system.py
 
 | File | Purpose |
 |------|---------|
-| `MASTER-AGENT-DEPLOYMENT.py` | Active agent with task processing loop |
+| `MASTER-AGENT-DEPLOYMENT.py` | Active agent with infinite task processing loop |
 | `STANDBY-AGENT.py` | Register agent without activation |
+| `AUTO-COMPLETE-AGENT.py` | Process all tasks, commit, and exit |
 | `deploy-agent.sh` | Quick deployment helper script |
 | `agents/registry.json` | Central agent registry (CCW-1 to CCW-10) |
 | `scripts/send_message.py` | Send messages between agents |

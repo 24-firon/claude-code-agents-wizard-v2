@@ -10,8 +10,9 @@ The **Claude Code Wizard (CCW) Agent System** enables you to deploy up to 10 par
 
 ```
 .claude/
-├── MASTER-AGENT-DEPLOYMENT.py    # Main deployment script (active agent)
-├── STANDBY-AGENT.py               # Standby/idle agent script
+├── MASTER-AGENT-DEPLOYMENT.py    # Active agent (infinite loop)
+├── STANDBY-AGENT.py               # Standby agent (register only)
+├── AUTO-COMPLETE-AGENT.py         # Batch agent (work until done)
 ├── deploy-agent.sh                # Quick deploy helper
 ├── agents/
 │   ├── registry.json              # Agent registry (CCW-1 to CCW-10)
@@ -158,6 +159,34 @@ Use cases:
   - Reserve agents for future use
   - Mark agents as registered but not yet deployed
   - Quick status update without full deployment
+```
+
+### Auto-Complete Agent (AUTO-COMPLETE-AGENT.py)
+
+```
+1. AGENT STARTS
+   ├─ Scans inbox for tasks assigned to this agent
+   └─ Enters batch processing mode
+
+2. BATCH PROCESSING (max 10 iterations)
+   ├─ Read all pending tasks from inbox
+   ├─ Process each task sequentially
+   ├─ Move completed tasks to completed/
+   ├─ Check if more tasks remain
+   └─ Repeat until no tasks or max iterations reached
+
+3. AUTO-FINALIZE
+   ├─ git add -A (stage all changes)
+   ├─ git commit -m "AGENT_ID all work complete"
+   ├─ git push (push to remote)
+   └─ Exit
+
+Purpose: Batch process all tasks then auto-commit
+Use cases:
+  - Complete all pending work without supervision
+  - Automated task completion workflows
+  - CI/CD integration for agent-based tasks
+  - Fire-and-forget batch processing
 ```
 
 ## 📊 Agent Status Monitoring
