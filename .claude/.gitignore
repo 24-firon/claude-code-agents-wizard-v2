@@ -1,0 +1,21 @@
+# Python cache
+scripts/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Message files (runtime data)
+messages/inbox/*.json
+messages/processing/*.json
+messages/completed/*.json
+messages/failed/*.json
+
+# Logs
+coordination/logs/*.log
+
+# Keep directory structure
+!messages/inbox/.gitkeep
+!messages/processing/.gitkeep
+!messages/completed/.gitkeep
+!messages/failed/.gitkeep
+!coordination/logs/.gitkeep

@@ -1,0 +1,32 @@
+{
+  "agents": [
+    {
+      "id": "CEO",
+      "name": "Claude Code CEO - Orchestrator",
+      "type": "cli",
+      "role": "ceo_orchestrator",
+      "status": "active",
+      "registered_at": "2025-11-23T07:36:53.612572Z",
+      "last_heartbeat": "2025-11-23T07:36:53.612589Z"
+    },
+    {
+      "id": "PM-1",
+      "name": "Claude Web Tab 1 - PM",
+      "type": "web",
+      "role": "pm_specialist",
+      "status": "active",
+      "registered_at": "2025-11-23T07:38:11.302365Z",
+      "last_heartbeat": "2025-11-23T07:38:11.302384Z"
+    },
+    {
+      "id": "MARKETER-1",
+      "name": "Claude Web Tab 2 - Marketer",
+      "type": "web",
+      "role": "marketer_specialist",
+      "status": "active",
+      "registered_at": "2025-11-23T07:38:11.303566Z",
+      "last_heartbeat": "2025-11-23T07:38:11.303576Z"
+    }
+  ],
+  "next_agent_id": 1
+}
