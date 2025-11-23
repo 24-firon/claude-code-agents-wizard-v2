@@ -19,28 +19,34 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "type-check": "tsc --noEmit"
   },
-  "keywords": ["express", "typescript", "prisma", "api", "client-portal"],
+  "keywords": [
+    "express",
+    "typescript",
+    "prisma",
+    "api",
+    "client-portal"
+  ],
   "author": "KI Agentur",
   "license": "UNLICENSED",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.461.0",
+    "@aws-sdk/s3-request-presigner": "^3.461.0",
     "@prisma/client": "^5.7.1",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
-    "cookie-parser": "^1.4.6",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
+    "isomorphic-dompurify": "^2.9.0",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "resend": "^3.0.0",
     "winston": "^3.11.0",
-    "zod": "^3.22.4",
-    "@aws-sdk/client-s3": "^3.461.0",
-    "@aws-sdk/s3-request-presigner": "^3.461.0",
-    "isomorphic-dompurify": "^2.9.0"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

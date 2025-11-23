@@ -3,6 +3,7 @@ import { authController } from '../controllers/auth.controller';
 import { validate } from '../middleware/validation.middleware';
 import { authenticate } from '../middleware/auth.middleware';
 import { authRateLimiter } from '../middleware/rateLimit.middleware';
+import { csrfProtection } from '../middleware/csrf.middleware';
 import { loginSchema, registerSchema } from '../schemas/auth.schema';
 import { auditLog } from '../middleware/audit.middleware';
 
@@ -27,6 +28,7 @@ router.post(
 router.post(
   '/refresh',
   authRateLimiter,
+  csrfProtection,
   authController.refresh.bind(authController)
 );
 

@@ -83,12 +83,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Add n8n webhook integration for CRM
-    // await fetch(process.env.N8N_WEBHOOK_URL, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(sanitizedData),
-    // });
+    // Send to n8n Lead Qualification Automation workflow
+    if (process.env.N8N_WEBHOOK_URL) {
+      try {
+        const n8nResponse = await fetch(process.env.N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sanitizedData),
+          // Don't block response on n8n - fire and forget
+          // This prevents slow n8n from affecting user experience
+        });
+
+        if (!n8nResponse.ok) {
+          console.warn('n8n webhook returned non-200 status:', n8nResponse.status);
+        }
+      } catch (error) {
+        // Log but don't throw - n8n webhook is async and non-critical
+        console.error('Failed to send to n8n workflow:', error instanceof Error ? error.message : 'Unknown error');
+      }
+    }
 
     // Return success response
     return createSuccessResponse(

@@ -1,0 +1,345 @@
+{
+  "name": "KI Agentur - Lead Qualification Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "ki-agentur-leads",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook - Contact Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse incoming lead data and extract company size from message\nconst lead = {\n  name: $input.first().json.name,\n  email: $input.first().json.email,\n  company: $input.first().json.company,\n  message: $input.first().json.message,\n  budget: $input.first().json.budget || 'unknown',\n  submissionDate: new Date().toISOString()\n};\n\n// Extract company size from message or estimate from budget\nlet companySize = 'unknown';\nconst messageLower = lead.message.toLowerCase();\n\nif (messageLower.includes('1-10') || messageLower.includes('startup') || messageLower.includes('small')) {\n  companySize = '1-10';\n} else if (messageLower.includes('11-50') || messageLower.includes('growing')) {\n  companySize = '11-50';\n} else if (messageLower.includes('51-200') || messageLower.includes('mid-size')) {\n  companySize = '51-200';\n} else if (messageLower.includes('200+') || messageLower.includes('enterprise')) {\n  companySize = '200+';\n}\n\n// Extract urgency from message\nlet urgency = 'exploring';\nif (messageLower.includes('asap') || messageLower.includes('urgent') || messageLower.includes('immediately')) {\n  urgency = 'asap';\n} else if (messageLower.includes('1-3 months') || messageLower.includes('next month')) {\n  urgency = '1-3 months';\n} else if (messageLower.includes('3-6 months') || messageLower.includes('quarter')) {\n  urgency = '3-6 months';\n}\n\n// Extract AI maturity level\nlet aiMaturity = 'none';\nif (messageLower.includes('advanced') || messageLower.includes('gpt') || messageLower.includes('machine learning')) {\n  aiMaturity = 'advanced';\n} else if (messageLower.includes('some') || messageLower.includes('chatbot') || messageLower.includes('automation')) {\n  aiMaturity = 'some';\n}\n\nreturn {\n  json: {\n    ...lead,\n    companySize,\n    urgency,\n    aiMaturity\n  }\n};"
+      },
+      "id": "2",
+      "name": "Parse Lead Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lead Scoring Algorithm\nconst lead = $input.first().json;\nlet score = 0;\nconst scoreBreakdown = {};\n\n// 1. Company Size Scoring (0-40 points)\nconst companySizeScores = {\n  '1-10': 10,\n  '11-50': 20,\n  '51-200': 30,\n  '200+': 40,\n  'unknown': 15\n};\nscore += companySizeScores[lead.companySize] || 0;\nscoreBreakdown.companySize = {\n  category: lead.companySize,\n  points: companySizeScores[lead.companySize] || 0\n};\n\n// 2. Budget Scoring (0-70 points)\nconst budgetScores = {\n  '<50k': 10,\n  '50-100k': 30,\n  '100-250k': 50,\n  '250k+': 70,\n  'unknown': 5\n};\nscore += budgetScores[lead.budget] || 0;\nscoreBreakdown.budget = {\n  category: lead.budget,\n  points: budgetScores[lead.budget] || 0\n};\n\n// 3. Project Urgency Scoring (0-30 points)\nconst urgencyScores = {\n  'asap': 30,\n  '1-3 months': 20,\n  '3-6 months': 10,\n  'exploring': 5,\n  'unknown': 5\n};\nscore += urgencyScores[lead.urgency] || 0;\nscoreBreakdown.urgency = {\n  category: lead.urgency,\n  points: urgencyScores[lead.urgency] || 0\n};\n\n// 4. AI Maturity Scoring (0-25 points)\nconst aiMaturityScores = {\n  'none': 5,\n  'some': 15,\n  'advanced': 25\n};\nscore += aiMaturityScores[lead.aiMaturity] || 0;\nscoreBreakdown.aiMaturity = {\n  category: lead.aiMaturity,\n  points: aiMaturityScores[lead.aiMaturity] || 0\n};\n\n// Determine qualification tier\nlet qualification = 'cold';\nlet tier = 'Newsletter';\nlet priority = 'Low';\n\nif (score >= 90) {\n  qualification = 'hot';\n  tier = 'Hot Lead - Sales Call';\n  priority = 'Urgent';\n} else if (score >= 60) {\n  qualification = 'warm';\n  tier = 'Warm Lead - Email Nurture';\n  priority = 'Medium';\n} else {\n  qualification = 'cold';\n  tier = 'Cold Lead - Newsletter';\n  priority = 'Low';\n}\n\nreturn {\n  json: {\n    ...lead,\n    score,\n    scoreBreakdown,\n    qualification,\n    tier,\n    priority,\n    qualificationId: `${lead.email}-${Date.now()}`,\n    processingTime: new Date().toISOString()\n  }\n};"
+      },
+      "id": "3",
+      "name": "Lead Scoring Engine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.qualification }}",
+              "value2": "hot",
+              "operation": "equals"
+            }
+          ]
+        }
+      },
+      "id": "4",
+      "name": "Is Hot Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.qualification }}",
+              "value2": "warm",
+              "operation": "equals"
+            }
+          ]
+        }
+      },
+      "id": "5",
+      "name": "Is Warm Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.airtable.com/v0/{{ $env.AIRTABLE_BASE_ID }}/Leads",
+        "authentication": "genericCredentialType",
+        "genericCredentialType": "airtableApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "records",
+              "value": "[{\"fields\": {\"Name\": \"={{ $json.name }}\", \"Email\": \"={{ $json.email }}\", \"Company\": \"={{ $json.company }}\", \"Message\": \"={{ $json.message.substring(0, 500) }}\", \"Budget\": \"={{ $json.budget }}\", \"Company Size\": \"={{ $json.companySize }}\", \"Urgency\": \"={{ $json.urgency }}\", \"AI Maturity\": \"={{ $json.aiMaturity }}\", \"Lead Score\": \"={{ $json.score }}\", \"Qualification\": \"={{ $json.qualification }}\", \"Tier\": \"={{ $json.tier }}\", \"Priority\": \"={{ $json.priority }}\", \"Submission Date\": \"={{ $json.submissionDate }}\"}}]"
+            }
+          ]
+        }
+      },
+      "id": "6",
+      "name": "Save to Airtable",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "chatId": "={{ $env.SLACK_CHANNEL_ID }}",
+        "text": "=*HOT LEAD ALERT* 🔥\\n\\n*Name:* {{ $json.name }}\\n*Email:* {{ $json.email }}\\n*Company:* {{ $json.company }}\\n*Budget:* {{ $json.budget }}\\n*Lead Score:* {{ $json.score }}/165\\n*Company Size:* {{ $json.companySize }}\\n*Urgency:* {{ $json.urgency }}\\n*AI Maturity:* {{ $json.aiMaturity }}\\n\\n_Immediate follow-up required_"
+      },
+      "id": "7",
+      "name": "Slack Notification - Hot Lead",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EMAIL_SERVICE_API }}",
+        "authentication": "genericCredentialType",
+        "genericCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "subject",
+              "value": "Schedule Your Free AI Automation Consultation"
+            },
+            {
+              "name": "template",
+              "value": "hot-lead"
+            },
+            {
+              "name": "variables",
+              "value": "{\"name\": \"={{ $json.name }}\", \"company\": \"={{ $json.company }}\", \"calendlyUrl\": \"https://calendly.com/ki-agentur/consultation\"}"
+            }
+          ]
+        }
+      },
+      "id": "8",
+      "name": "Send Hot Lead Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EMAIL_SERVICE_API }}",
+        "authentication": "genericCredentialType",
+        "genericCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "subject",
+              "value": "How We Helped Companies Like Yours Automate with AI"
+            },
+            {
+              "name": "template",
+              "value": "warm-lead"
+            },
+            {
+              "name": "variables",
+              "value": "{\"name\": \"={{ $json.name }}\", \"company\": \"={{ $json.company }}\"}"
+            }
+          ]
+        }
+      },
+      "id": "9",
+      "name": "Send Warm Lead Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1500,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EMAIL_SERVICE_API }}",
+        "authentication": "genericCredentialType",
+        "genericCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "subject",
+              "value": "Stay Updated on AI Automation Trends"
+            },
+            {
+              "name": "template",
+              "value": "cold-lead"
+            },
+            {
+              "name": "variables",
+              "value": "{\"name\": \"={{ $json.name }}\"}"
+            }
+          ]
+        }
+      },
+      "id": "10",
+      "name": "Send Cold Lead Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1500,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "chatId": "={{ $env.SLACK_TEAM_CHANNEL_ID }}",
+        "text": "=*New Lead Submission*\\n\\n*Name:* {{ $json.name }}\\n*Email:* {{ $json.email }}\\n*Company:* {{ $json.company }}\\n*Lead Score:* {{ $json.score }}/165\\n*Tier:* {{ $json.tier }}"
+      },
+      "id": "11",
+      "name": "Slack Notification - Team",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        450
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Contact Form": {
+      "main": [
+        [
+          {
+            "node": "Parse Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Lead Scoring Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Scoring Engine": {
+      "main": [
+        [
+          {
+            "node": "Is Hot Lead?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Warm Lead?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Save to Airtable",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack Notification - Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Hot Lead?": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification - Hot Lead",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Hot Lead Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Warm Lead?": {
+      "main": [
+        [
+          {
+            "node": "Send Warm Lead Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Cold Lead Email": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8e82a23e-1234-4567-89ab-cdef12345678",
+  "meta": {
+    "instanceId": "12345678901234567890abcdef"
+  },
+  "pinData": {}
+}
