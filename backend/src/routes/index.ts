@@ -1,17 +1,31 @@
 import { Hono } from 'hono';
+import { auth } from './auth.routes';
 
 const routes = new Hono();
 
-// Placeholder routes - will be expanded in later phases
+// Mount auth routes
+routes.route('/auth', auth);
+
+// API Info
 routes.get('/', (c) => c.json({
-  message: 'KI Agentur Portal API v1.0.0',
+  name: 'KI Agentur Portal API',
+  version: '1.0.0',
   endpoints: {
-    auth: '/api/auth/*',
-    dashboard: '/api/dashboard/*',
-    documents: '/api/documents/*',
-    workflows: '/api/workflows/*',
-    webhooks: '/api/webhooks/*',
-  }
+    auth: {
+      'POST /api/auth/login': 'Login with email/password',
+      'POST /api/auth/register': 'Register new user',
+      'POST /api/auth/refresh': 'Refresh access token',
+      'POST /api/auth/logout': 'Logout (revoke refresh token)',
+      'GET /api/auth/me': 'Get current user (protected)',
+      'PATCH /api/auth/me': 'Update profile (protected)',
+      'POST /api/auth/change-password': 'Change password (protected)',
+      'POST /api/auth/logout-all': 'Logout all devices (protected)',
+    },
+    dashboard: '/api/dashboard/* (coming soon)',
+    documents: '/api/documents/* (coming soon)',
+    workflows: '/api/workflows/* (coming soon)',
+    webhooks: '/api/webhooks/* (coming soon)',
+  },
 }));
 
 export { routes };
