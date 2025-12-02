@@ -1,0 +1,256 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pgvector(map: "vector")]
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  ADMIN
+  CTO
+  CEO
+  PM
+  VIEWER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum DocumentPhase {
+  DISCOVERY
+  PLANNING
+  DEVELOPMENT
+  TESTING
+  DEPLOYMENT
+  MAINTENANCE
+}
+
+enum WorkflowStatus {
+  SUCCESS
+  FAILED
+  RUNNING
+  PENDING
+}
+
+enum NotificationType {
+  WORKFLOW_SUCCESS
+  WORKFLOW_FAILED
+  DOCUMENT_UPLOADED
+  MILESTONE_DUE
+  HEALTH_ALERT
+  SYSTEM
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  role          UserRole  @default(VIEWER)
+  avatarUrl     String?   @map("avatar_url")
+
+  // Relations
+  projectId     String?   @map("project_id")
+  project       Project?  @relation(fields: [projectId], references: [id])
+
+  notifications Notification[]
+  documents     Document[]     @relation("UploadedDocuments")
+
+  // Metadata
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+  @@index([email])
+  @@index([projectId])
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  healthScore Int           @default(100) @map("health_score")
+
+  // Relations
+  users       User[]
+  documents   Document[]
+  workflows   Workflow[]
+  milestones  Milestone[]
+
+  // Metadata
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@map("projects")
+  @@index([status])
+  @@index([healthScore])
+}
+
+model Document {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  phase       DocumentPhase @default(DISCOVERY)
+  filePath    String        @map("file_path")
+  fileSize    Int           @map("file_size")
+  mimeType    String        @map("mime_type")
+  version     Int           @default(1)
+
+  // Relations
+  projectId    String        @map("project_id")
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  uploadedById String        @map("uploaded_by_id")
+  uploadedBy   User          @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+
+  versions     DocumentVersion[]
+
+  // Metadata
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@map("documents")
+  @@index([projectId])
+  @@index([phase])
+  @@index([name])
+}
+
+model DocumentVersion {
+  id         String   @id @default(cuid())
+  version    Int
+  filePath   String   @map("file_path")
+  fileSize   Int      @map("file_size")
+  changeNote String?  @map("change_note")
+
+  // Relations
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("document_versions")
+  @@index([documentId])
+  @@unique([documentId, version])
+}
+
+model Workflow {
+  id           String         @id @default(cuid())
+  name         String
+  n8nId        String         @unique @map("n8n_id")
+  description  String?
+  successRate  Float          @default(100) @map("success_rate")
+  avgExecTime  Int            @default(0) @map("avg_exec_time_ms")
+  lastRunAt    DateTime?      @map("last_run_at")
+  isActive     Boolean        @default(true) @map("is_active")
+
+  // Relations
+  projectId    String         @map("project_id")
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  logs         WorkflowLog[]
+
+  // Metadata
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@map("workflows")
+  @@index([projectId])
+  @@index([n8nId])
+}
+
+model WorkflowLog {
+  id            String         @id @default(cuid())
+  status        WorkflowStatus
+  executionTime Int            @map("execution_time_ms")
+  errorMessage  String?        @map("error_message")
+  inputData     Json?          @map("input_data")
+  outputData    Json?          @map("output_data")
+
+  // Relations
+  workflowId    String         @map("workflow_id")
+  workflow      Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@map("workflow_logs")
+  @@index([workflowId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Milestone {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime  @map("due_date")
+  completedAt DateTime? @map("completed_at")
+
+  // Relations
+  projectId   String    @map("project_id")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("milestones")
+  @@index([projectId])
+  @@index([dueDate])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?        @map("read_at")
+
+  // Relations
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@map("notifications")
+  @@index([userId])
+  @@index([readAt])
+  @@index([createdAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([token])
+}
