@@ -9,11 +9,12 @@ import {
 } from '../schemas/auth.schema';
 import * as authService from '../services/auth.service';
 import { authMiddleware } from '../middleware/auth';
+import { authRateLimiter } from '../middleware/rateLimit';
 
 const auth = new Hono();
 
-// POST /auth/login
-auth.post('/login', zValidator('json', loginSchema), async (c) => {
+// POST /auth/login - with strict rate limiting
+auth.post('/login', authRateLimiter, zValidator('json', loginSchema), async (c) => {
   const input = c.req.valid('json');
   const result = await authService.login(input);
 
@@ -23,8 +24,8 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
   });
 });
 
-// POST /auth/register
-auth.post('/register', zValidator('json', registerSchema), async (c) => {
+// POST /auth/register - with strict rate limiting
+auth.post('/register', authRateLimiter, zValidator('json', registerSchema), async (c) => {
   const input = c.req.valid('json');
   const result = await authService.register(input);
 
