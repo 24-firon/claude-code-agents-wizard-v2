@@ -4,6 +4,7 @@ import { dashboard } from './dashboard.routes';
 import { documents } from './documents.routes';
 import { workflows } from './workflows.routes';
 import { notifications } from './notifications.routes';
+import { webhooks } from './webhooks.routes';
 
 const routes = new Hono();
 
@@ -13,6 +14,7 @@ routes.route('/dashboard', dashboard);
 routes.route('/documents', documents);
 routes.route('/workflows', workflows);
 routes.route('/notifications', notifications);
+routes.route('/webhooks', webhooks);
 
 // API Info
 routes.get('/', (c) => c.json({
@@ -55,7 +57,14 @@ routes.get('/', (c) => c.json({
       'PATCH /api/notifications/read-all': 'Mark all read',
       'DELETE /api/notifications/:id': 'Delete',
     },
-    webhooks: '/api/webhooks/* (Phase 5)',
+    webhooks: {
+      'POST /api/webhooks/n8n/workflow': 'Handle workflow events',
+      'POST /api/webhooks/n8n/workflow-started': 'Workflow started',
+      'POST /api/webhooks/n8n/workflow-completed': 'Workflow completed',
+      'POST /api/webhooks/n8n/workflow-failed': 'Workflow failed',
+      'POST /api/webhooks/n8n/register': 'Register workflow',
+      'GET /api/webhooks/health': 'Webhook health check',
+    },
   },
 }));
 
