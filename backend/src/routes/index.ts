@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { auth } from './auth.routes';
 import { dashboard } from './dashboard.routes';
 import { documents } from './documents.routes';
+import { workflows } from './workflows.routes';
+import { notifications } from './notifications.routes';
 
 const routes = new Hono();
 
@@ -9,6 +11,8 @@ const routes = new Hono();
 routes.route('/auth', auth);
 routes.route('/dashboard', dashboard);
 routes.route('/documents', documents);
+routes.route('/workflows', workflows);
+routes.route('/notifications', notifications);
 
 // API Info
 routes.get('/', (c) => c.json({
@@ -37,8 +41,21 @@ routes.get('/', (c) => c.json({
       'GET /api/documents/:id/versions': 'Get versions',
       'POST /api/documents/:id/versions': 'Create version (PM+)',
     },
-    workflows: '/api/workflows/* (coming next)',
-    notifications: '/api/notifications/* (coming next)',
+    workflows: {
+      'GET /api/workflows': 'List workflows',
+      'GET /api/workflows/:id': 'Get workflow',
+      'GET /api/workflows/:id/logs': 'Logs (CTO+)',
+      'GET /api/workflows/:id/stats': 'Stats (CTO+)',
+      'POST /api/workflows/:id/trigger': 'Trigger (CTO+)',
+    },
+    notifications: {
+      'GET /api/notifications': 'List notifications',
+      'GET /api/notifications/unread-count': 'Unread count',
+      'PATCH /api/notifications/:id/read': 'Mark read',
+      'PATCH /api/notifications/read-all': 'Mark all read',
+      'DELETE /api/notifications/:id': 'Delete',
+    },
+    webhooks: '/api/webhooks/* (Phase 5)',
   },
 }));
 
