@@ -1,0 +1,28 @@
+{
+  "name": "groundzero-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Ground-Zero Multi-Agent Orchestration",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "agent",
+    "orchestration"
+  ],
+  "author": "Ground-Zero",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "zod": "^3.22.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

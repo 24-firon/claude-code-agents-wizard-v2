@@ -1,0 +1,87 @@
+# Ground-Zero Prometheus Configuration
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'groundzero'
+    environment: 'production'
+
+# Alerting configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # PostgreSQL Exporter (requires postgres_exporter container)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'groundzero-postgres'
+
+  # Redis Exporter (requires redis_exporter container)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'groundzero-redis'
+
+  # n8n Metrics (if exposed)
+  - job_name: 'n8n'
+    static_configs:
+      - targets: ['n8n:5678']
+    metrics_path: /metrics
+
+  # Agent Zero Custom Metrics (Python prometheus_client)
+  - job_name: 'agent-zero'
+    static_configs:
+      - targets: ['agent-zero:8000']
+    metrics_path: /metrics
+
+  # Node Exporter (host metrics - requires node_exporter)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'digitalocean-droplet'
+
+# Example alert rules (create alerts.yml)
+# groups:
+#   - name: groundzero_alerts
+#     rules:
+#       - alert: HighTaskQueueLength
+#         expr: task_queue_length > 100
+#         for: 5m
+#         labels:
+#           severity: warning
+#         annotations:
+#           summary: "High task queue length detected"
+#           description: "Task queue has {{ $value }} pending tasks"
+#
+#       - alert: AgentZeroDown
+#         expr: up{job="agent-zero"} == 0
+#         for: 2m
+#         labels:
+#           severity: critical
+#         annotations:
+#           summary: "Agent Zero is down"

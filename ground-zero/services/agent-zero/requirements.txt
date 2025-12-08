@@ -1,0 +1,31 @@
+# Ground-Zero Agent Zero Service - Dependencies
+# Python 3.10+
+
+# Database & State Management
+asyncpg==0.29.0          # PostgreSQL async driver
+redis==5.0.1             # Redis client for caching
+psycopg2-binary==2.9.9   # PostgreSQL sync driver (fallback)
+
+# LLM Integration
+ollama==0.1.6            # Ollama Python SDK
+
+# HTTP & API
+aiohttp==3.9.1           # Async HTTP client
+httpx==0.25.2            # HTTP client with timeout support
+
+# Task Queue & Async
+celery==5.3.4            # Distributed task queue (optional)
+asyncio-mqtt==0.16.2     # MQTT async support
+
+# Utilities
+python-dotenv==1.0.0     # Environment variable loading
+pydantic==2.5.3          # Data validation
+structlog==23.3.0        # Structured logging
+
+# Monitoring
+prometheus-client==0.19.0  # Metrics export
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.23.2
+pytest-cov==4.1.0

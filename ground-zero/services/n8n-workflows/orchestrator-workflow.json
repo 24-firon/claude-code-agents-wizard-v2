@@ -1,0 +1,96 @@
+{
+  "name": "Ground-Zero Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook - New Task",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "groundzero-task-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO task_queue (task_type, payload, status, priority) VALUES ($1, $2, 'pending', $3) RETURNING task_id",
+        "additionalFields": {
+          "queryParameters": "={{ JSON.stringify([$.json.task_type, $.json.payload, $.json.priority || 5]) }}"
+        }
+      },
+      "name": "Enqueue Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Ground-Zero PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const taskId = items[0].json.task_id;\nconst taskType = items[0].json.task_type;\n\nreturn [{\n  json: {\n    task_id: taskId,\n    task_type: taskType,\n    status: 'enqueued',\n    message: `Task ${taskId} enqueued successfully`\n  }\n}];"
+      },
+      "name": "Format Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "channel": "task_events",
+        "messageType": "string",
+        "message": "={{ JSON.stringify({ type: 'task_enqueued', task_id: $json.task_id }) }}"
+      },
+      "name": "Publish Event to Redis",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [650, 500],
+      "credentials": {
+        "redis": {
+          "id": "2",
+          "name": "Ground-Zero Redis"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - New Task": {
+      "main": [
+        [
+          {
+            "node": "Enqueue Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enqueue Task": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Publish Event to Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "groundzero-orchestrator",
+  "tags": []
+}
